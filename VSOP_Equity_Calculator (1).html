@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equity threshold calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2F2F3;
+    --card:#FFFFFF;
+    --line:#E4E4E7;
+    --ink:#18181B;
+    --ink-2:#494950;
+    --ink-3:#6B6B74;
+    --ink-4:#AFAFB6;
+    --accent:#5046E8;
+    --ok-bg:#D7F8E3;
+    --ok-fg:#003011;
+    --no-bg:#FDE2E5;
+    --no-fg:#C10011;
+    --ease:200ms cubic-bezier(.2,.8,.2,1);
+    --font:'Albert Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    padding:64px 32px 96px;
+  }
+  .wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+
+  header{display:flex;flex-direction:column;gap:16px}
+  .logo{height:20px;width:auto;align-self:flex-start;color:var(--ink)}
+  h1{font-size:40px;font-weight:700;line-height:1.25;letter-spacing:-.01em;margin:0}
+  .lede{font-size:14px;font-weight:300;line-height:1.6;color:var(--ink-2);margin:0;max-width:72ch}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:24px;align-items:start}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px}
+  h2{font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-.01em;margin:0 0 20px}
+  .rule{height:1px;background:var(--line);margin:24px -32px}
+
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  label{font-size:13px;font-weight:500;line-height:1.4;color:var(--ink-2)}
+  .ctrl{position:relative}
+  .prefix{position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:300;color:var(--ink-4);pointer-events:none}
+  input[type=text]{
+    width:100%;height:48px;padding:0 20px 0 40px;
+    border:1px solid var(--line);border-radius:24px;background:var(--card);
+    font-family:var(--font);font-size:16px;font-weight:500;color:var(--ink);
+    font-variant-numeric:tabular-nums;outline:none;
+    transition:border-color var(--ease),box-shadow var(--ease);
+  }
+  select{
+    width:100%;height:48px;padding:0 48px 0 20px;
+    border:1px solid var(--line);border-radius:24px;background:var(--card);
+    font-family:var(--font);font-size:15px;font-weight:400;color:var(--ink);
+    outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;
+    transition:border-color var(--ease),box-shadow var(--ease);
+  }
+  input[type=text]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(80,70,232,.14)}
+  .chev{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none}
+  .hint{font-size:13px;font-weight:300;line-height:1.55;color:var(--ink-3);margin:4px 0 0}
+  .hint.tight{margin-top:10px}
+  .linkbtn{background:none;border:0;padding:0;margin-top:4px;align-self:flex-start;font-family:var(--font);font-size:13px;font-weight:500;color:var(--accent);cursor:pointer}
+  .linkbtn:hover{text-decoration:underline}
+
+  .headline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .headline .num{font-size:48px;font-weight:700;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .headline .unit{font-size:15px;font-weight:300;line-height:1.4;color:var(--ink-3)}
+  .chip{display:inline-flex;align-items:center;min-height:28px;padding:4px 14px;border-radius:1000px;font-size:13px;font-weight:500;line-height:1.4;margin-top:16px}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px}
+  .stat{display:flex;flex-direction:column;gap:6px}
+  .stat .k{font-size:11px;font-weight:300;line-height:1.3;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4)}
+  .stat .v{font-size:20px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+
+  .barrow{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+  .barrow .k{font-size:14px;font-weight:300;line-height:1.4;color:var(--ink-2)}
+  .barrow .v{font-size:14px;font-weight:700;line-height:1.4;font-variant-numeric:tabular-nums}
+  .track{position:relative;height:10px;margin:14px 0 6px}
+  .track .bg{position:absolute;inset:0;border-radius:1000px;background:var(--line);overflow:hidden}
+  .track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:1000px;background:var(--ink-4);transition:width var(--ease),background var(--ease)}
+  .track .mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:2px;transition:left var(--ease)}
+  .scale{position:relative;height:18px;font-size:11px;font-weight:300;line-height:1.5;color:var(--ink-4);font-variant-numeric:tabular-nums}
+  .scale .lo{position:absolute;left:0}
+  .scale .hi{position:absolute;right:0}
+  .scale .mid{position:absolute;transform:translateX(-50%);white-space:nowrap;color:var(--ink);font-weight:500}
+
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  td{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;font-weight:300;line-height:1.4;color:var(--ink-2)}
+  td.n{text-align:right;font-weight:400;color:var(--ink)}
+  tr.total td{font-weight:700;color:var(--ink)}
+  tr.ote td{border-bottom:1px solid var(--ink)}
+  tr.last td{border-bottom:0}
+  tr.foot td{border-bottom:0;font-size:13px;color:var(--ink-3);font-weight:300}
+
+  footer{display:flex;flex-direction:column;gap:10px;max-width:88ch}
+  footer p{font-size:14px;font-weight:300;line-height:1.65;color:var(--ink-2);margin:0}
+  footer strong{font-weight:700;color:var(--ink)}
+
+  @media (max-width:640px){
+    body{padding:32px 16px 64px}
+    h1{font-size:30px}
+    section{padding:24px}
+    .rule{margin:20px -24px}
+    .pair{grid-template-columns:1fr}
+    .cols{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="logo" viewBox="0 0 151.997 24" fill="currentColor" role="img" aria-label="Wemolo"><path d="M 13.472 0.014 C 16.338 -0.194 17.512 2.055 18.291 3.265 C 20.124 6.107 21.68 3.516 22.998 1.846 C 24.379 0.319 27.011 0.142 28.677 2.61 C 29.902 4.782 28.538 8.871 27.846 11.521 C 26.965 14.892 26.58 16.723 25.394 20.134 C 25.193 20.711 24.412 23.587 21.859 23.868 C 19.199 24.164 17.942 20.31 15.382 20.355 C 12.564 20.406 11.925 23.799 9.588 23.984 C 6.075 24.262 4.904 20.944 3.511 17.615 C 2.791 15.899 2.246 14.525 1.788 13.268 C 0.177 8.845 -1.74 1.352 2.964 1.18 C 6.161 1.064 7.058 4.059 8.293 4.075 C 10.823 4.107 10.23 0.249 13.472 0.014 Z M 111.348 1.121 C 113.416 -1.132 117.624 0.225 117.853 3.354 C 118.058 6.185 118.262 10.414 118.434 12.426 C 118.634 14.779 120.14 15.223 120.78 15.413 C 121.623 15.663 123.324 15.928 124.049 16.22 C 127.515 17.308 127.109 23.365 123.591 23.736 C 121.727 23.934 119.789 23.998 117.1 23.998 C 114.722 23.998 111.013 23.051 110.769 18.639 C 110.465 13.138 110.319 8.877 110.494 3.938 C 110.54 2.656 110.613 1.921 111.348 1.121 Z M 58.403 0.064 C 63.988 -0.694 64.448 5.478 67.322 5.478 C 71.354 5.479 71.616 1.492 76.092 1.24 C 77.471 1.162 79.21 2.961 79.487 5.917 C 79.83 9.578 80.047 19.545 79.499 21.563 C 78.708 24.47 75.181 24.178 73.78 22.053 C 72.872 20.674 73.197 19.615 72.041 19.515 C 70.487 19.379 70.623 21.818 67.604 21.57 C 65.036 21.359 65.713 18.553 63.769 18.561 C 62.428 18.567 62.332 20.728 61.535 22.265 C 59.831 25.554 54.815 24.009 54.855 18.96 L 54.855 18.958 C 54.975 14.094 54.878 9.156 55.045 3.942 C 55.112 1.851 56.287 0.264 58.403 0.064 Z M 85.21 6.022 C 86.572 1.526 93.082 -1.538 99.313 0.833 C 102.223 1.941 105.29 5.414 105.552 11.856 C 105.638 13.983 104.96 26.074 92.889 23.678 L 92.887 23.68 C 87.17 22.543 83.236 11.335 85.21 6.022 Z M 34.064 6.013 C 34.207 0.726 37.935 -0.141 42.262 0.087 C 44.634 0.211 47.306 -0.113 48.981 1.877 C 51.305 4.531 49.289 6.958 46.389 6.979 C 46.046 6.981 44.41 7.252 44.364 8.126 C 44.326 8.876 45.248 9.345 45.443 9.415 C 47.635 10.205 47.754 10.89 47.756 12.002 C 47.756 13.327 46.502 13.719 45.679 14.407 C 45.254 14.762 44.976 15.964 45.761 16.796 C 46.301 17.369 47.735 17.476 48.396 18.185 C 50.616 20.562 48.785 23.392 44.834 23.672 C 42.177 23.861 40.73 23.995 38.103 23.929 C 34.437 23.733 34.257 18.776 34.191 15.857 L 34.19 15.854 L 34.189 15.853 C 34.103 11.676 33.966 9.686 34.064 6.013 Z M 131.363 12.929 C 130.044 -5.56 153.809 -3.291 151.886 15.298 C 151.897 18.214 149.927 23.493 142.407 23.832 C 133.31 24.243 131.45 14.895 131.363 12.929 Z" fill-rule="nonzero"></path></svg>
+    <h1>Equity threshold calculator</h1>
+    <p class="lede">Set the grant that clears the volume threshold for a career level. Enter the package after promotion, pick the new level, and the minimum qualifying grant and top-up follow. The threshold is measured against the OTE equivalent, so the grant is grossed up.</p>
+  </header>
+
+  <div class="cols">
+
+    <section>
+      <h2>Package</h2>
+
+      <div class="pair">
+        <div class="field">
+          <label for="base">Base salary p.a.</label>
+          <div class="ctrl">
+            <span class="prefix">€</span>
+            <input type="text" id="base" inputmode="decimal" value="90.000">
+          </div>
+        </div>
+        <div class="field">
+          <label for="variable">Variable p.a. (on target)</label>
+          <div class="ctrl">
+            <span class="prefix">€</span>
+            <input type="text" id="variable" inputmode="decimal" value="0">
+          </div>
+        </div>
+      </div>
+      <p class="hint tight">Variable at 100 % target achievement, not the actual payout. 0 for roles without variable pay.</p>
+      <p class="hint" id="oteHint" style="margin-top:6px"></p>
+
+      <div class="rule"></div>
+      <h2>Career level</h2>
+
+      <div class="field">
+        <label for="level">Career level</label>
+        <div class="ctrl">
+          <select id="level">
+            <option value="m6">M6 — &gt; 25 % of OTE</option>
+            <option value="m5">M5 — &gt; 25 % of OTE</option>
+            <option value="m4">M4 / P6 — &gt; 20 % of OTE</option>
+            <option value="m3" selected>M3 / P5 — &gt; 15 % of OTE</option>
+            <option value="vol">Voluntary (M2 / high-performing IC) — &gt; 7,5 %, min. 6.000 €</option>
+          </select>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="#494950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+        <p class="hint" id="levelHint"></p>
+      </div>
+
+      <div class="rule"></div>
+      <h2>Grant</h2>
+
+      <div class="field">
+        <label for="grant">Planned grant p.a.</label>
+        <div class="ctrl">
+          <span class="prefix">€</span>
+          <input type="text" id="grant" inputmode="decimal" value="">
+        </div>
+        <button type="button" class="linkbtn" id="useMin">Set to minimum qualifying grant</button>
+      </div>
+
+      <div class="pair" style="margin-top:20px">
+        <div class="field">
+          <label for="current">Current equity p.a.</label>
+          <div class="ctrl">
+            <span class="prefix">€</span>
+            <input type="text" id="current" inputmode="decimal" value="0">
+          </div>
+          <p class="hint">Leave at 0 for a first grant.</p>
+        </div>
+        <div class="field">
+          <label for="years">Vesting period</label>
+          <div class="ctrl">
+            <select id="years">
+              <option value="1">1 year</option>
+              <option value="2">2 years</option>
+              <option value="3">3 years</option>
+              <option value="4" selected>4 years</option>
+              <option value="5">5 years</option>
+            </select>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="#494950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+          <p class="hint">Used for the total grant value.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Result</h2>
+
+      <div class="headline">
+        <span class="num" id="grantOut">–</span>
+        <span class="unit">equity p.a.</span>
+      </div>
+      <div><span class="chip" id="chip"></span></div>
+
+      <div class="rule"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Minimum qualifying grant</div>
+          <div class="v" id="minOut">–</div>
+        </div>
+        <div class="stat">
+          <div class="k">Top-up vs. current</div>
+          <div class="v" id="topupOut">–</div>
+        </div>
+        <div class="stat">
+          <div class="k">Total over vesting</div>
+          <div class="v" id="totalOut">–</div>
+        </div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="barrow">
+        <span class="k">Equity share of OTE equivalent</span>
+        <span class="v" id="pctOut">–</span>
+      </div>
+      <div class="track">
+        <div class="bg"><div class="fill" id="fill" style="width:0%"></div></div>
+        <div class="mark" id="mark" style="left:0%"></div>
+      </div>
+      <div class="scale">
+        <span class="lo">0 %</span>
+        <span class="mid" id="markLabel"></span>
+        <span class="hi" id="scaleHi"></span>
+      </div>
+
+      <div class="rule"></div>
+
+      <table>
+        <tbody>
+          <tr><td>Base salary</td><td class="n" id="tBase">–</td></tr>
+          <tr><td>Variable (on target)</td><td class="n" id="tVar">–</td></tr>
+          <tr class="total ote"><td>OTE (base + variable)</td><td class="n" id="tOte">–</td></tr>
+          <tr><td>Equity p.a.</td><td class="n" id="tEq">–</td></tr>
+          <tr class="total last"><td>OTE equivalent</td><td class="n" id="tEquiv">–</td></tr>
+          <tr class="foot"><td>Equity as share of OTE equivalent</td><td class="n" id="tPctOte" style="font-weight:300;color:var(--ink-3)">–</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <footer>
+    <p><strong>Both rules are minimums.</strong> A grant that lands exactly on the percentage qualifies, as does exactly 6.000 € in the voluntary program. Whichever of the two is higher is binding, and there is no upper ceiling.</p>
+    <p><strong>Grants are set in 500 € steps</strong>, always rounded up.</p>
+    <p><strong>The percentage is measured against the OTE equivalent</strong>, base plus variable plus equity. Because the grant counts towards its own denominator, the requirement is grossed up: 15 % of the OTE equivalent equals 17,6 % of base plus variable.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STEP = 500;
+
+  var LEVELS = {
+    m6:  { label: 'M6',                pct: 0.25,  floor: 0 },
+    m5:  { label: 'M5',                pct: 0.25,  floor: 0 },
+    m4:  { label: 'M4 / P6',           pct: 0.20,  floor: 0 },
+    m3:  { label: 'M3 / P5',           pct: 0.15,  floor: 0 },
+    vol: { label: 'Voluntary program', pct: 0.075, floor: 6000 }
+  };
+
+  var LEVEL_HINTS = {
+    m6:  'Mandatory participation.',
+    m5:  'Mandatory participation.',
+    m4:  'Mandatory participation.',
+    m3:  'Mandatory participation. Entry point of the mandatory program.',
+    vol: 'Voluntary. Requires an "Exceeds Expectations" rating and is binding for the rest of the tenure.'
+  };
+
+  var eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  var plain = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+  function money(n) { return eur.format(Math.round(n || 0)); }
+  function pct(x) { return (x * 100).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + ' %'; }
+
+  function parseNum(v) {
+    if (typeof v === 'number') return v;
+    var s = String(v == null ? '' : v).trim().replace(/[€\s\u00A0']/g, '');
+    if (!s) return 0;
+    var d = s.lastIndexOf('.'), c = s.lastIndexOf(',');
+    if (d > -1 && c > -1) {
+      s = (c > d) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    } else if (c > -1) {
+      s = (s.length - c - 1) === 3 ? s.replace(/,/g, '') : s.replace(',', '.');
+    } else if (d > -1) {
+      if ((s.length - d - 1) === 3) s = s.replace(/\./g, '');
+    }
+    var n = parseFloat(s);
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var elBase = $('base'), elVar = $('variable'), elCurrent = $('current'),
+      elGrant = $('grant'), elLevel = $('level'), elYears = $('years');
+
+  var grantTouched = false;
+
+  function render() {
+    var lvl = LEVELS[elLevel.value] || LEVELS.m3;
+    var b = parseNum(elBase.value);
+    var v = parseNum(elVar.value);
+    var ote = b + v;
+    var yrs = parseFloat(elYears.value) || 1;
+
+    // Threshold applies to the OTE equivalent, which includes the grant itself, so it is grossed up.
+    var pctReq = ote * lvl.pct / (1 - lvl.pct);
+    var req = Math.max(pctReq, lvl.floor);
+    var min = ote > 0 ? Math.ceil(req / STEP) * STEP : 0;
+
+    if (!grantTouched && document.activeElement !== elGrant) {
+      elGrant.value = min ? plain.format(min) : '';
+    }
+
+    var g = parseNum(elGrant.value);
+    var cur = parseNum(elCurrent.value);
+    var topup = Math.max(0, min - cur);
+    var equiv = ote + g;
+    var shown = equiv > 0 ? g / equiv : 0;
+    var clears = ote > 0 && g + 0.5 >= pctReq && g >= lvl.floor;
+
+    var chip = $('chip'), statusText, chipBg, chipFg;
+    if (ote <= 0) {
+      statusText = 'Enter a base salary to calculate.';
+      chipBg = '#F2F2F3'; chipFg = '#494950';
+    } else if (clears) {
+      statusText = 'Clears the ' + lvl.label + ' threshold of ' + pct(lvl.pct) +
+        (lvl.floor ? ' and the ' + money(lvl.floor) + ' floor' : '') + '.';
+      chipBg = '#D7F8E3'; chipFg = '#003011';
+    } else {
+      statusText = 'Below the ' + lvl.label + ' threshold. Short by ' + money(Math.max(0, min - g)) + ' p.a.';
+      chipBg = '#FDE2E5'; chipFg = '#C10011';
+    }
+    chip.textContent = statusText;
+    chip.style.background = chipBg;
+    chip.style.color = chipFg;
+
+    var thr = lvl.pct;
+    var scaleMax = Math.max(0.30, thr * 1.4, shown * 1.15);
+    var fillPct = Math.min(100, (shown / scaleMax) * 100);
+    var markPos = Math.min(100, (thr / scaleMax) * 100);
+
+    $('grantOut').textContent = g > 0 ? money(g) : '–';
+    $('minOut').textContent = ote > 0 ? money(min) : '–';
+    $('topupOut').textContent = ote > 0 ? (topup > 0 ? money(topup) : 'None') : '–';
+    $('totalOut').textContent = g > 0 ? money(g * yrs) : '–';
+    $('pctOut').textContent = ote > 0 ? pct(shown) : '–';
+
+    var fill = $('fill');
+    fill.style.width = fillPct + '%';
+    fill.style.background = clears ? '#5046E8' : '#AFAFB6';
+    $('mark').style.left = markPos + '%';
+    $('markLabel').style.left = markPos + '%';
+    $('markLabel').textContent = pct(thr) + ' threshold';
+    $('scaleHi').textContent = pct(scaleMax);
+
+    $('tBase').textContent = money(b);
+    $('tVar').textContent = money(v);
+    $('tOte').textContent = money(ote);
+    $('tEq').textContent = money(g);
+    $('tEquiv').textContent = money(equiv);
+    $('tPctOte').textContent = equiv > 0 ? pct(shown) : '–';
+
+    $('oteHint').textContent = 'Base + variable: ' + money(ote) +
+      '. The equity grant is added on top and the total is the OTE equivalent the threshold is measured against.';
+    $('levelHint').textContent = LEVEL_HINTS[elLevel.value] || '';
+  }
+
+  function formatOnBlur(el, fallbackEmpty) {
+    el.addEventListener('blur', function () {
+      var n = parseNum(el.value);
+      if (n) {
+        el.value = plain.format(n);
+      } else {
+        el.value = fallbackEmpty ? '' : '0';
+      }
+      render();
+    });
+  }
+
+  [elBase, elVar, elCurrent].forEach(function (el) {
+    el.addEventListener('input', render);
+    formatOnBlur(el, false);
+  });
+
+  elGrant.addEventListener('input', function () { grantTouched = true; render(); });
+  formatOnBlur(elGrant, true);
+
+  elLevel.addEventListener('change', render);
+  elYears.addEventListener('change', render);
+
+  $('useMin').addEventListener('click', function () {
+    grantTouched = false;
+    elGrant.value = '';
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wemolo Document Renamer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #F2F2F3;
+    font-family: "Albert Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #18181B;
+  }
+  .page { min-height: 100vh; display: flex; justify-content: center; padding: 48px 24px; }
+  .wrap { width: 100%; max-width: 1080px; }
+
+  /* Header */
+  header {
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 24px; margin-bottom: 32px;
+  }
+  .brand { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .brand svg { height: 22px; width: auto; display: block; color: #18181B; }
+  h1 { margin: 0; font-weight: 700; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
+
+  .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  button.btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px;
+    border-radius: 1000px; font-family: inherit; font-weight: 600; font-size: 16px;
+    cursor: pointer; transition: all 200ms cubic-bezier(0.2,0.8,0.2,1); white-space: nowrap;
+  }
+  button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-outline { border: 2px solid #5046E8; background: #FFFFFF; color: #5046E8; }
+  .btn-outline:not(:disabled):hover { background: #5046E8; color: #FFFFFF; }
+  .btn-solid {
+    border: none; background: #5046E8; color: #FFFFFF;
+    box-shadow: 0 6px 18px rgba(80,70,232,0.32);
+  }
+  .btn-solid:not(:disabled):hover { background: #4038C4; }
+  .btn-solid:not(:disabled):active { transform: scale(0.98); }
+  #fileInput, #splitFileInput { display: none; }
+
+  /* Meta strip */
+  .meta-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+  .pill {
+    display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px;
+    border-radius: 1000px; background: #F0EFFD; color: #10298E;
+  }
+  .pill .label { font-weight: 300; font-size: 14px; opacity: 0.75; white-space: nowrap; }
+  .pill input {
+    font-family: inherit; font-weight: 700; font-size: 14px; color: #10298E;
+    background: transparent; border: none; outline: none; width: 150px;
+  }
+  .pill input::placeholder { color: #10298E; opacity: 0.45; font-weight: 500; }
+
+  /* Datumsfeld: gleiche helle, dünne Optik wie Description (auch ohne Wert) */
+  .date-pill { position: relative; }
+  .date-pill input#docdate { color: #10298E; opacity: 0.45; font-weight: 500; padding-right: 26px; }
+  .date-pill input#docdate.has-value { opacity: 1; font-weight: 700; }
+  .cal-icon-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: #10298E; opacity: 0.55; display: flex; align-items: center;
+  }
+  .cal-icon-btn:hover { opacity: 0.9; }
+
+  /* Kalender-Popup im Wemolo-Design */
+  .cal-popup {
+    position: fixed; z-index: 9999;
+    background: #FFFFFF; border: 1px solid #E4E4E7; border-radius: 18px;
+    box-shadow: 8px 8px 24px 16px rgba(0,0,0,0.06);
+    padding: 18px; width: 300px; font-family: "Albert Sans", sans-serif;
+  }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-month-label { font-weight: 700; font-size: 15px; color: #18181B; }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-nav button {
+    width: 30px; height: 30px; border-radius: 1000px; border: 1px solid #E4E4E7;
+    background: #FFFFFF; color: #5046E8; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .cal-nav button:hover { background: #5046E8; color: #FFFFFF; }
+  .cal-weekdays, .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+  .cal-weekdays span { font-size: 11px; font-weight: 700; color: #AFAFB6; text-transform: uppercase; padding-bottom: 8px; }
+  .cal-days button {
+    aspect-ratio: 1; width: 100%; border: none; background: none; border-radius: 1000px;
+    font-family: inherit; font-size: 13.5px; color: #18181B; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease;
+  }
+  .cal-days button:hover { background: #F0EFFD; color: #5046E8; }
+  .cal-days button.muted { color: #C5C5CA; }
+  .cal-days button.today { font-weight: 700; color: #5046E8; }
+  .cal-days button.selected { background: #5046E8; color: #FFFFFF; font-weight: 700; }
+  .cal-foot { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #F2F2F3; }
+  .cal-foot button {
+    background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 600;
+    color: #5046E8; cursor: pointer; padding: 4px;
+  }
+  .cal-foot button:hover { text-decoration: underline; }
+
+  .pill-status {
+    display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px;
+    border-radius: 1000px; background: #D7F8E3; color: #003011; margin-left: auto;
+    font-size: 14px;
+  }
+  .pill-status.empty { background: #ECECEE; color: #6B6B74; }
+  .pill-status span.count { font-weight: 700; font-size: 14px; }
+
+  /* Table card */
+  .card {
+    background: #FFFFFF; border: 1px solid #E4E4E7; border-radius: 24px; overflow: hidden;
+    box-shadow: 8px 8px 24px 16px rgba(0,0,0,0.04);
+  }
+  .card.dragover { outline: 2px dashed #5046E8; outline-offset: -2px; }
+
+  .row-grid {
+    display: grid; grid-template-columns: 180px 1fr 108px 1fr 96px;
+    align-items: center; gap: 16px;
+  }
+  .thead { padding: 18px 28px; background: #FAFAFA; border-bottom: 1px solid #E4E4E7; }
+  .thead span { font-weight: 700; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: #6B6B74; }
+
+  .trow { padding: 20px 28px; border-bottom: 1px solid #F2F2F3; transition: background 150ms cubic-bezier(0.2,0.8,0.2,1); }
+  .trow:last-child { border-bottom: none; }
+  .trow:hover { background: #F7F6FF; }
+
+  .col-time { font-weight: 300; font-size: 14px; color: #6B6B74; font-variant-numeric: tabular-nums; }
+  .col-original { font-weight: 300; font-size: 14px; color: #494950; word-break: break-word; }
+  .col-newname { font-weight: 500; font-size: 14px; color: #18181B; word-break: break-word; }
+  .col-newname.muted { color: #AFAFB6; font-weight: 300; font-style: italic; }
+
+  .status-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px;
+    border-radius: 1000px; font-weight: 700; font-size: 13px; white-space: nowrap;
+  }
+  .status-ok { background: #D7F8E3; color: #003011; }
+  .status-warn { background: #FDEFDD; color: #7A3E00; }
+  .status-chip.clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+  .status-chip.clickable:hover { background: #FBE3C4; }
+  .status-pending { background: #ECECEE; color: #6B6B74; }
+
+  .name-inputs { display: flex; gap: 6px; }
+  .name-hint, .name-preview { display: block; margin-top: 4px; font-size: 12px; }
+  .name-preview { color: #6B6B72; font-weight: 500; font-style: normal; }
+  .name-display { display: flex; align-items: center; gap: 8px; }
+  .name-edit-btn {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; border: 1px solid transparent;
+    background: transparent; color: #AFAFB6; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 150ms ease;
+  }
+  .name-edit-btn:hover { background: #F0EFFD; color: #5046E8; border-color: #E4E4E7; }
+  .name-inputs input {
+    width: 100%; min-width: 0; padding: 6px 10px; font-size: 13px; font-family: inherit;
+    border: 1px solid #E4E4E7; border-radius: 8px; background: #FAFAFA;
+  }
+  .name-inputs input:focus { outline: 2px solid #5046E8; outline-offset: 1px; border-color: transparent; }
+
+  .row-actions { display: flex; justify-content: flex-end; gap: 6px; }
+  .icon-btn {
+    width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid #E4E4E7; border-radius: 1000px; background: #FFFFFF; color: #494950;
+    cursor: pointer; transition: all 150ms cubic-bezier(0.2,0.8,0.2,1);
+  }
+  .icon-btn:hover { border-color: #5046E8; color: #5046E8; background: #F7F6FF; }
+  .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .icon-btn.danger:hover { border-color: #B0402C; color: #B0402C; background: #FBEAE6; }
+
+  .empty-row {
+    padding: 56px 28px; text-align: center; color: #AFAFB6; font-weight: 300; font-size: 14.5px;
+  }
+  .empty-row strong { color: #5046E8; font-weight: 600; cursor: pointer; }
+
+  .footer-note { margin: 20px 4px 0; font-weight: 300; font-size: 13px; color: #AFAFB6; }
+
+  @media (max-width: 760px) {
+    .row-grid { grid-template-columns: 1fr; row-gap: 8px; }
+    .thead { display: none; }
+    .row-actions { justify-content: flex-start; }
+  }
+
+  /* App-Shell: Sidebar links (auf Höhe des Logos) + Hauptbereich.
+     Geschlossen: Sidebar liegt als Overlay über der Seite und nimmt keinen
+     Platz im Layout ein -> Hauptinhalt bleibt exakt mittig zentriert.
+     Offen: Sidebar wird Teil des Flex-Layouts und schiebt den Hauptbereich
+     sichtbar nach rechts (Push-Effekt). */
+  .app-shell { display: flex; align-items: stretch; min-height: 100vh; width: 100%; position: relative; }
+
+  .tools-sidebar {
+    position: fixed; top: 0; left: 0; width: 76px; height: 100vh; z-index: 400;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 14px 0; box-sizing: border-box;
+    transition: width 280ms cubic-bezier(0.2,0.8,0.2,1), align-items 280ms cubic-bezier(0.2,0.8,0.2,1), padding 280ms cubic-bezier(0.2,0.8,0.2,1);
+  }
+  .tools-sidebar.open {
+    position: sticky; align-self: flex-start; flex: 0 0 auto;
+    width: 210px; align-items: flex-start; padding: 48px 16px 0;
+  }
+
+  .tools-sidebar-toggle {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 1000px; border: 1px solid #E4E4E7;
+    background: #FFFFFF; color: #5046E8; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 150ms ease, border-color 150ms ease;
+  }
+  .tools-sidebar-toggle:hover { background: #F0EFFD; border-color: #5046E8; }
+  .tools-sidebar-toggle svg { transition: transform 220ms cubic-bezier(0.2,0.8,0.2,1); }
+  .tools-sidebar.open .tools-sidebar-toggle svg { transform: rotate(180deg); }
+
+  .tools-sidebar-panel {
+    width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 6px;
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height 280ms cubic-bezier(0.2,0.8,0.2,1), opacity 220ms ease;
+  }
+  .tools-sidebar.open .tools-sidebar-panel { max-height: 220px; opacity: 1; }
+
+  .tools-panel-label {
+    font-weight: 700; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #AFAFB6;
+    padding: 0 4px 2px;
+  }
+  .tools-panel-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    border: 2px solid transparent; background: #F7F6FF; color: #18181B; font-family: inherit; font-weight: 600; font-size: 13.5px;
+    padding: 9px 10px; border-radius: 10px; cursor: pointer; transition: all 150ms cubic-bezier(0.2,0.8,0.2,1);
+    white-space: nowrap;
+  }
+  .tools-panel-btn svg { width: 16px; height: 16px; color: #5046E8; flex-shrink: 0; }
+  .tools-panel-btn:hover { background: #EDEBFC; }
+  .tools-panel-btn.active { background: #EDEBFC; }
+
+  .app-main { flex: 1 1 auto; min-width: 0; }
+
+  /* Splitter-spezifische Spalten */
+  .row-grid-split { display: grid; grid-template-columns: 90px 160px 1fr 130px 96px; align-items: center; gap: 16px; }
+  @media (max-width: 760px) {
+    .row-grid-split { grid-template-columns: 1fr; row-gap: 8px; }
+  }
+  .pill input[type="number"] { width: 70px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="tools-sidebar" id="toolsSidebar">
+    <button type="button" class="tools-sidebar-toggle" id="toolsSidebarToggle" title="More Tools" aria-label="More Tools">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <div class="tools-sidebar-panel" id="toolsSidebarPanel">
+      <div class="tools-panel-label">More Tools</div>
+      <button type="button" class="tools-panel-btn" id="gotoSplitterBtn" data-view="splitter">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M18 3v18M3 9h4M17 9h4M3 15h4M17 15h4"/></svg>
+        PDF Splitter
+      </button>
+      <button type="button" class="tools-panel-btn" id="gotoRenamerBtn" data-view="renamer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Document Renamer
+      </button>
+    </div>
+  </aside>
+
+  <main class="app-main" id="appMain">
+
+<div class="page" id="renamerView">
+  <div class="wrap">
+
+    <header>
+      <div class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="151.997" height="24.000" viewBox="0 0 151.997 24.000" fill="none"><path d="M 13.472 0.014 C 16.338 -0.194 17.512 2.055 18.291 3.265 C 20.124 6.107 21.68 3.516 22.998 1.846 C 24.379 0.319 27.011 0.142 28.677 2.61 C 29.902 4.782 28.538 8.871 27.846 11.521 C 26.965 14.892 26.58 16.723 25.394 20.134 C 25.193 20.711 24.412 23.587 21.859 23.868 C 19.199 24.164 17.942 20.31 15.382 20.355 C 12.564 20.406 11.925 23.799 9.588 23.984 C 6.075 24.262 4.904 20.944 3.511 17.615 C 2.791 15.899 2.246 14.525 1.788 13.268 C 0.177 8.845 -1.74 1.352 2.964 1.18 C 6.161 1.064 7.058 4.059 8.293 4.075 C 10.823 4.107 10.23 0.249 13.472 0.014 Z M 111.348 1.121 C 113.416 -1.132 117.624 0.225 117.853 3.354 C 118.058 6.185 118.262 10.414 118.434 12.426 C 118.634 14.779 120.14 15.223 120.78 15.413 C 121.623 15.663 123.324 15.928 124.049 16.22 C 127.515 17.308 127.109 23.365 123.591 23.736 C 121.727 23.934 119.789 23.998 117.1 23.998 C 114.722 23.998 111.013 23.051 110.769 18.639 C 110.465 13.138 110.319 8.877 110.494 3.938 C 110.54 2.656 110.613 1.921 111.348 1.121 Z M 58.403 0.064 C 63.988 -0.694 64.448 5.478 67.322 5.478 C 71.354 5.479 71.616 1.492 76.092 1.24 C 77.471 1.162 79.21 2.961 79.487 5.917 C 79.83 9.578 80.047 19.545 79.499 21.563 C 78.708 24.47 75.181 24.178 73.78 22.053 C 72.872 20.674 73.197 19.615 72.041 19.515 C 70.487 19.379 70.623 21.818 67.604 21.57 C 65.036 21.359 65.713 18.553 63.769 18.561 C 62.428 18.567 62.332 20.728 61.535 22.265 C 59.831 25.554 54.815 24.009 54.855 18.96 L 54.855 18.958 C 54.975 14.094 54.878 9.156 55.045 3.942 C 55.112 1.851 56.287 0.264 58.403 0.064 Z M 85.21 6.022 C 86.572 1.526 93.082 -1.538 99.313 0.833 C 102.223 1.941 105.29 5.414 105.552 11.856 C 105.638 13.983 104.96 26.074 92.889 23.678 L 92.887 23.68 C 87.17 22.543 83.236 11.335 85.21 6.022 Z M 34.064 6.013 C 34.207 0.726 37.935 -0.141 42.262 0.087 C 44.634 0.211 47.306 -0.113 48.981 1.877 C 51.305 4.531 49.289 6.958 46.389 6.979 C 46.046 6.981 44.41 7.252 44.364 8.126 C 44.326 8.876 45.248 9.345 45.443 9.415 C 47.635 10.205 47.754 10.89 47.756 12.002 C 47.756 13.327 46.502 13.719 45.679 14.407 C 45.254 14.762 44.976 15.964 45.761 16.796 C 46.301 17.369 47.735 17.476 48.396 18.185 C 50.616 20.562 48.785 23.392 44.834 23.672 C 42.177 23.861 40.73 23.995 38.103 23.929 C 34.437 23.733 34.257 18.776 34.191 15.857 L 34.19 15.854 L 34.189 15.853 C 34.103 11.676 33.966 9.686 34.064 6.013 Z M 131.363 12.929 C 130.044 -5.56 153.809 -3.291 151.886 15.298 C 151.897 18.214 149.927 23.493 142.407 23.832 C 133.31 24.243 131.45 14.895 131.363 12.929 Z" fill="currentColor" fill-rule="nonzero"/></svg>
+        <h1>Document Renamer</h1>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline" id="addFileBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add File
+        </button>
+        <button type="button" class="btn btn-outline" id="renameBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Rename Documents
+        </button>
+        <button type="button" class="btn btn-solid" id="downloadAllBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download All
+        </button>
+        <button type="button" class="btn btn-outline" id="resetBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+          Reset
+        </button>
+      </div>
+    </header>
+    <input type="file" id="fileInput" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple>
+
+    <div class="meta-strip">
+      <div class="pill">
+        <span class="label">Document Description</span>
+        <input type="text" id="description" placeholder="enter…">
+      </div>
+      <div class="pill date-pill" id="datePill">
+        <span class="label">Document Date</span>
+        <input type="text" id="docdate" placeholder="dd.mm.yyyy" autocomplete="off">
+        <button type="button" class="cal-icon-btn" id="calIconBtn" aria-label="Open calendar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+        </button>
+        <div class="cal-popup" id="calPopup" hidden></div>
+      </div>
+      <div class="pill-status empty" id="statusPill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span><span class="count" id="okCount">0</span> of <span id="totalCount">0</span> renamed</span>
+      </div>
+    </div>
+
+    <div class="card" id="dropCard">
+      <div class="row-grid thead">
+        <span>Timestamp</span>
+        <span>Original File</span>
+        <span>Status</span>
+        <span>New Name</span>
+        <span></span>
+      </div>
+      <div id="tbody"></div>
+    </div>
+
+    <p class="footer-note" id="footerNote">No activity yet.</p>
+  </div>
+</div>
+
+<div class="page" id="splitterView" style="display:none;">
+  <div class="wrap">
+
+    <header>
+      <div class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="151.997" height="24.000" viewBox="0 0 151.997 24.000" fill="none"><path d="M 13.472 0.014 C 16.338 -0.194 17.512 2.055 18.291 3.265 C 20.124 6.107 21.68 3.516 22.998 1.846 C 24.379 0.319 27.011 0.142 28.677 2.61 C 29.902 4.782 28.538 8.871 27.846 11.521 C 26.965 14.892 26.58 16.723 25.394 20.134 C 25.193 20.711 24.412 23.587 21.859 23.868 C 19.199 24.164 17.942 20.31 15.382 20.355 C 12.564 20.406 11.925 23.799 9.588 23.984 C 6.075 24.262 4.904 20.944 3.511 17.615 C 2.791 15.899 2.246 14.525 1.788 13.268 C 0.177 8.845 -1.74 1.352 2.964 1.18 C 6.161 1.064 7.058 4.059 8.293 4.075 C 10.823 4.107 10.23 0.249 13.472 0.014 Z M 111.348 1.121 C 113.416 -1.132 117.624 0.225 117.853 3.354 C 118.058 6.185 118.262 10.414 118.434 12.426 C 118.634 14.779 120.14 15.223 120.78 15.413 C 121.623 15.663 123.324 15.928 124.049 16.22 C 127.515 17.308 127.109 23.365 123.591 23.736 C 121.727 23.934 119.789 23.998 117.1 23.998 C 114.722 23.998 111.013 23.051 110.769 18.639 C 110.465 13.138 110.319 8.877 110.494 3.938 C 110.54 2.656 110.613 1.921 111.348 1.121 Z M 58.403 0.064 C 63.988 -0.694 64.448 5.478 67.322 5.478 C 71.354 5.479 71.616 1.492 76.092 1.24 C 77.471 1.162 79.21 2.961 79.487 5.917 C 79.83 9.578 80.047 19.545 79.499 21.563 C 78.708 24.47 75.181 24.178 73.78 22.053 C 72.872 20.674 73.197 19.615 72.041 19.515 C 70.487 19.379 70.623 21.818 67.604 21.57 C 65.036 21.359 65.713 18.553 63.769 18.561 C 62.428 18.567 62.332 20.728 61.535 22.265 C 59.831 25.554 54.815 24.009 54.855 18.96 L 54.855 18.958 C 54.975 14.094 54.878 9.156 55.045 3.942 C 55.112 1.851 56.287 0.264 58.403 0.064 Z M 85.21 6.022 C 86.572 1.526 93.082 -1.538 99.313 0.833 C 102.223 1.941 105.29 5.414 105.552 11.856 C 105.638 13.983 104.96 26.074 92.889 23.678 L 92.887 23.68 C 87.17 22.543 83.236 11.335 85.21 6.022 Z M 34.064 6.013 C 34.207 0.726 37.935 -0.141 42.262 0.087 C 44.634 0.211 47.306 -0.113 48.981 1.877 C 51.305 4.531 49.289 6.958 46.389 6.979 C 46.046 6.981 44.41 7.252 44.364 8.126 C 44.326 8.876 45.248 9.345 45.443 9.415 C 47.635 10.205 47.754 10.89 47.756 12.002 C 47.756 13.327 46.502 13.719 45.679 14.407 C 45.254 14.762 44.976 15.964 45.761 16.796 C 46.301 17.369 47.735 17.476 48.396 18.185 C 50.616 20.562 48.785 23.392 44.834 23.672 C 42.177 23.861 40.73 23.995 38.103 23.929 C 34.437 23.733 34.257 18.776 34.191 15.857 L 34.19 15.854 L 34.189 15.853 C 34.103 11.676 33.966 9.686 34.064 6.013 Z M 131.363 12.929 C 130.044 -5.56 153.809 -3.291 151.886 15.298 C 151.897 18.214 149.927 23.493 142.407 23.832 C 133.31 24.243 131.45 14.895 131.363 12.929 Z" fill="currentColor" fill-rule="nonzero"/></svg>
+        <h1>PDF Splitter</h1>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline" id="splitAddFileBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add File
+        </button>
+        <button type="button" class="btn btn-outline" id="splitStartBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M18 3v18M3 9h4M17 9h4M3 15h4M17 15h4"/></svg>
+          Split PDF
+        </button>
+        <button type="button" class="btn btn-outline" id="splitToRenameBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Rename Documents
+        </button>
+        <button type="button" class="btn btn-solid" id="splitDownloadAllBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download All
+        </button>
+        <button type="button" class="btn btn-outline" id="splitResetBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+          Reset
+        </button>
+      </div>
+    </header>
+    <input type="file" id="splitFileInput" accept=".pdf,application/pdf">
+
+    <div class="meta-strip">
+      <div class="pill">
+        <span class="label">Pages per PDF</span>
+        <input type="number" id="pagesPerSplit" min="1" step="1" value="2">
+      </div>
+      <div class="pill" id="splitSourceInfoPill" style="display:none;">
+        <span class="label">Source File</span>
+        <input type="text" id="splitSourceInfo" readonly value="">
+      </div>
+      <div class="pill-status empty" id="splitStatusPill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span><span class="count" id="splitOkCount">0</span> of <span id="splitTotalCount">0</span> PDFs created</span>
+      </div>
+    </div>
+
+    <div class="card" id="splitDropCard">
+      <div class="row-grid-split thead">
+        <span>Part</span>
+        <span>Pages</span>
+        <span>Filename</span>
+        <span>Status</span>
+        <span></span>
+      </div>
+      <div id="splitTbody"></div>
+    </div>
+
+    <p class="footer-note" id="splitFooterNote">No activity yet.</p>
+  </div>
+</div>
+
+  </main>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let items = [];
+let idCounter = 0;
+let renamed = false;
+
+const fileInput = document.getElementById('fileInput');
+const addFileBtn = document.getElementById('addFileBtn');
+const renameBtn = document.getElementById('renameBtn');
+const resetBtn = document.getElementById('resetBtn');
+const dropCard = document.getElementById('dropCard');
+const tbody = document.getElementById('tbody');
+const descriptionInput = document.getElementById('description');
+const dateInput = document.getElementById('docdate');
+const datePill = document.getElementById('datePill');
+const calIconBtn = document.getElementById('calIconBtn');
+const calPopup = document.getElementById('calPopup');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const statusPill = document.getElementById('statusPill');
+const okCountEl = document.getElementById('okCount');
+const totalCountEl = document.getElementById('totalCount');
+const footerNote = document.getElementById('footerNote');
+
+let selectedDate = null; // Date-Objekt oder null
+let calViewYear, calViewMonth;
+
+addFileBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+['dragover'].forEach(evt => dropCard.addEventListener(evt, e => { e.preventDefault(); dropCard.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(evt => dropCard.addEventListener(evt, e => { e.preventDefault(); dropCard.classList.remove('dragover'); }));
+dropCard.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+
+descriptionInput.addEventListener('input', () => { renamed = false; recomputeAll(); touchFooter(); });
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function formatDisplay(d) {
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function parseTyped(str) {
+  const m = str.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10), month = parseInt(m[2], 10), year = parseInt(m[3], 10);
+  if (month < 1 || month > 12) return null;
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return d;
+}
+
+function setSelectedDate(d) {
+  selectedDate = d;
+  dateInput.value = d ? formatDisplay(d) : '';
+  dateInput.classList.toggle('has-value', !!d);
+  renamed = false;
+  recomputeAll();
+  touchFooter();
+}
+
+function positionCalendar() {
+  const rect = datePill.getBoundingClientRect();
+  const popupWidth = 300;
+  const margin = 12;
+  let left = rect.left;
+  let top = rect.bottom + 8;
+
+  if (left + popupWidth > window.innerWidth - margin) {
+    left = Math.max(margin, window.innerWidth - popupWidth - margin);
+  }
+  if (left < margin) left = margin;
+
+  // Falls unten kein Platz mehr ist, stattdessen oberhalb des Feldes öffnen
+  const estimatedHeight = 380;
+  if (top + estimatedHeight > window.innerHeight - margin) {
+    top = Math.max(margin, rect.top - estimatedHeight - 8);
+  }
+
+  calPopup.style.left = left + 'px';
+  calPopup.style.top = top + 'px';
+}
+
+function openCalendar() {
+  const base = selectedDate || new Date();
+  calViewYear = base.getFullYear();
+  calViewMonth = base.getMonth();
+  renderCalendar();
+  calPopup.hidden = false;
+  positionCalendar();
+}
+
+function closeCalendar() {
+  calPopup.hidden = true;
+}
+
+function renderCalendar() {
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+  const startWeekday = (firstOfMonth.getDay() + 6) % 7; // 0 = Montag
+  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(calViewYear, calViewMonth, 0).getDate();
+  const today = new Date();
+
+  let cellsHtml = '';
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    cellsHtml += `<button type="button" class="muted" disabled>${daysInPrevMonth - i}</button>`;
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(calViewYear, calViewMonth, day);
+    const classes = [];
+    if (isSameDay(d, today)) classes.push('today');
+    if (selectedDate && isSameDay(d, selectedDate)) classes.push('selected');
+    cellsHtml += `<button type="button" class="${classes.join(' ')}" data-day="${day}">${day}</button>`;
+  }
+  const trailing = (7 - ((startWeekday + daysInMonth) % 7)) % 7;
+  for (let i = 1; i <= trailing; i++) {
+    cellsHtml += `<button type="button" class="muted" disabled>${i}</button>`;
+  }
+
+  calPopup.innerHTML = `
+    <div class="cal-head">
+      <span class="cal-month-label">${monthNames[calViewMonth]} ${calViewYear}</span>
+      <div class="cal-nav">
+        <button type="button" id="calPrev" aria-label="Previous month"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button type="button" id="calNext" aria-label="Next month"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="cal-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+    <div class="cal-days">${cellsHtml}</div>
+    <div class="cal-foot">
+      <button type="button" id="calClear">Clear</button>
+      <button type="button" id="calToday">Today</button>
+    </div>
+  `;
+
+  document.getElementById('calPrev').addEventListener('click', (e) => {
+    e.stopPropagation();
+    calViewMonth--; if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+    renderCalendar();
+  });
+  document.getElementById('calNext').addEventListener('click', (e) => {
+    e.stopPropagation();
+    calViewMonth++; if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+    renderCalendar();
+  });
+  document.getElementById('calClear').addEventListener('click', (e) => { e.stopPropagation(); setSelectedDate(null); closeCalendar(); });
+  document.getElementById('calToday').addEventListener('click', (e) => { e.stopPropagation(); setSelectedDate(new Date()); closeCalendar(); });
+
+  calPopup.querySelectorAll('.cal-days button:not(.muted)').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setSelectedDate(new Date(calViewYear, calViewMonth, parseInt(btn.dataset.day, 10)));
+      closeCalendar();
+    });
+  });
+}
+
+calIconBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (calPopup.hidden) openCalendar(); else closeCalendar();
+});
+
+dateInput.addEventListener('focus', () => openCalendar());
+
+dateInput.addEventListener('input', () => {
+  const parsed = parseTyped(dateInput.value);
+  selectedDate = parsed;
+  dateInput.classList.toggle('has-value', dateInput.value.trim().length > 0);
+  renamed = false;
+  recomputeAll();
+  touchFooter();
+  if (!calPopup.hidden) {
+    if (parsed) { calViewYear = parsed.getFullYear(); calViewMonth = parsed.getMonth(); }
+    renderCalendar();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!calPopup.hidden && !datePill.contains(e.target) && !calPopup.contains(e.target)) closeCalendar();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCalendar(); });
+window.addEventListener('scroll', () => { if (!calPopup.hidden) positionCalendar(); }, true);
+window.addEventListener('resize', () => { if (!calPopup.hidden) positionCalendar(); });
+
+renameBtn.addEventListener('click', () => {
+  if (items.some(i => i.extracting)) {
+    alert('Some documents are still being read — please wait a moment and try again.');
+    return;
+  }
+
+  items.forEach(i => { i.editingName = false; });
+  recomputeAll();
+  renamed = items.some(i => i.newName);
+  render();
+  touchFooter();
+});
+
+function nowStamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function touchFooter() {
+  footerNote.textContent = 'Last updated: ' + nowStamp();
+}
+
+function handleFiles(fileListObj) {
+  const files = Array.from(fileListObj).filter(f => {
+    const name = f.name.toLowerCase();
+    return f.type === 'application/pdf'
+      || f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      || name.endsWith('.pdf')
+      || name.endsWith('.docx');
+  });
+  renamed = false;
+  files.forEach(file => {
+    const item = {
+      id: idCounter++,
+      file,
+      originalName: file.name,
+      time: nowStamp(),
+      vorname: '',
+      nachname: '',
+      detected: false,
+      extracting: true,
+      newName: null,
+      editingName: false
+    };
+    items.push(item);
+    detectName(item);
+  });
+  render();
+  touchFooter();
+}
+
+const NAME_PART = "[A-ZÄÖÜ][a-zA-ZäöüßÄÖÜ]+(?:\\s*-\\s*[A-ZÄÖÜ][a-zA-ZäöüßÄÖÜ]+)*";
+
+/**
+ * Fallback-Erkennung: sucht nach dem klassischen Anschriftenfeld eines
+ * Geschäftsbriefs - eine Zeile mit "Vorname Nachname", direkt gefolgt von
+ * einer Zeile, die wie eine Straße oder Postleitzahl aussieht.
+ */
+function detectNameFromAddressBlock(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const streetPattern = /(straße|strasse|str\.?|weg|allee|platz|gasse|ring)\s*\d+/i;
+  const postalPattern = /^\d{5}\s+\S+/;
+  const nameLinePattern = new RegExp('^(' + NAME_PART + ')\\s+(' + NAME_PART + ')$');
+
+  for (let i = 0; i < lines.length - 1; i++) {
+    const nameMatch = lines[i].match(nameLinePattern);
+    if (!nameMatch) continue;
+
+    const nextLine = lines[i + 1] || '';
+    const lineAfter = lines[i + 2] || '';
+
+    if (streetPattern.test(nextLine) || postalPattern.test(nextLine) || postalPattern.test(lineAfter)) {
+      return {
+        vorname: nameMatch[1].replace(/\s*-\s*/g, '-'),
+        nachname: nameMatch[2].replace(/\s*-\s*/g, '-')
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Liest den reinen Text aus einer Datei - unterstützt PDF (via pdf.js)
+ * und DOCX (via mammoth.js). Bei PDF bleiben Zeilenumbrüche erhalten
+ * (wichtig für die Adressblock-Erkennung).
+ */
+async function extractText(item) {
+  const ext = item.originalName.split('.').pop().toLowerCase();
+  const buffer = await item.file.arrayBuffer();
+
+  if (ext === 'docx') {
+    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    return result.value;
+  }
+
+  // Standardfall: PDF
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let text = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    content.items.forEach(it => {
+      text += it.str + (it.hasEOL ? '\n' : ' ');
+    });
+  }
+  return text;
+}
+
+async function detectName(item) {
+  try {
+    const text = await extractText(item);
+
+    const namePattern = new RegExp('\\b(?:Mr|Mrs|Ms|Frau|Herrn|Herr)\\.?\\s+(' + NAME_PART + ')\\s+(' + NAME_PART + ')');
+    const rawMatch = text.match(namePattern);
+    let match = rawMatch
+      ? { vorname: rawMatch[1].replace(/\s*-\s*/g, '-'), nachname: rawMatch[2].replace(/\s*-\s*/g, '-') }
+      : detectNameFromAddressBlock(text);
+
+    if (match) {
+      item.vorname = match.vorname;
+      item.nachname = match.nachname;
+      item.detected = true;
+    }
+  } catch (err) {
+    console.error('Fehler beim Lesen von', item.originalName, err);
+  } finally {
+    item.extracting = false;
+    recomputeAll();
+    touchFooter();
+  }
+}
+
+function sanitize(str) {
+  return String(str || '').trim().replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
+}
+
+function computeNewName(item) {
+  if (!item.vorname || !item.nachname) return null;
+  const description = descriptionInput.value;
+  if (!description.trim() || !selectedDate) return null;
+  const datePart = `${selectedDate.getFullYear()}${pad2(selectedDate.getMonth() + 1)}${pad2(selectedDate.getDate())}`;
+  const ext = item.originalName.split('.').pop().toLowerCase();
+  return [datePart, sanitize(description), sanitize(item.vorname), sanitize(item.nachname)].join('_') + '.' + ext;
+}
+
+function recomputeAll() {
+  items.forEach(item => { item.newName = computeNewName(item); });
+  render();
+}
+
+function updateSummary() {
+  const total = items.length;
+  const okCount = items.filter(i => i.newName).length;
+  okCountEl.textContent = okCount;
+  totalCountEl.textContent = total;
+  statusPill.classList.toggle('empty', total === 0 || !renamed || okCount < total);
+  renameBtn.disabled = total === 0;
+  downloadAllBtn.disabled = !renamed || okCount === 0;
+}
+
+function buildNameFooterEl(item) {
+  if (item.newName) {
+    const el = document.createElement('span');
+    el.className = 'col-newname name-preview';
+    el.textContent = item.newName;
+    return el;
+  }
+  if (item.vorname && item.nachname) {
+    const el = document.createElement('span');
+    el.className = 'col-newname muted name-hint';
+    el.textContent = 'Add Document Description / Date above';
+    return el;
+  }
+  return null;
+}
+
+function buildStatusChip(item) {
+  const chip = document.createElement('span');
+  chip.className = 'status-chip';
+  if (item.extracting) {
+    chip.classList.add('status-pending');
+    chip.textContent = 'Reading…';
+  } else if (item.newName) {
+    chip.classList.add('status-ok');
+    chip.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> OK';
+  } else if (!item.vorname || !item.nachname) {
+    chip.classList.add('status-warn');
+    chip.classList.add('clickable');
+    chip.textContent = 'Check Name';
+    chip.title = 'Click to open the document and check the name';
+    chip.addEventListener('click', () => openDocument(item));
+  } else {
+    chip.classList.add('status-warn');
+    chip.textContent = 'Missing Info';
+  }
+  return chip;
+}
+
+/* Aktualisiert nur den Status-Chip + Download-Button einer Zeile, ohne die
+   komplette Tabelle neu zu rendern - dadurch behalten die Vorname/Nachname-
+   Eingabefelder beim Tippen den Fokus (kein Cursor-Sprung mehr). */
+function patchRowInPlace(row, item) {
+  const statusWrap = row.children[2];
+  statusWrap.innerHTML = '';
+  statusWrap.appendChild(buildStatusChip(item));
+
+  const dlBtn = row.querySelector('.icon-btn:not(.danger)');
+  if (dlBtn) dlBtn.disabled = !item.newName;
+
+  const nameCol = row.children[3];
+  const oldFooter = nameCol.querySelector('.name-preview, .name-hint');
+  if (oldFooter) oldFooter.remove();
+  const footerEl = buildNameFooterEl(item);
+  if (footerEl) nameCol.appendChild(footerEl);
+}
+
+function render() {
+  tbody.innerHTML = '';
+
+  if (items.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-row';
+    empty.innerHTML = 'No documents uploaded yet. <strong id="emptyAdd">Add File</strong>';
+    tbody.appendChild(empty);
+    document.getElementById('emptyAdd').addEventListener('click', () => fileInput.click());
+  } else {
+    items.forEach(item => tbody.appendChild(buildRow(item)));
+  }
+
+  updateSummary();
+}
+
+function buildRow(item) {
+  const row = document.createElement('div');
+  row.className = 'trow row-grid';
+
+  const timeEl = document.createElement('span');
+  timeEl.className = 'col-time';
+  timeEl.textContent = item.time;
+
+  const origEl = document.createElement('span');
+  origEl.className = 'col-original';
+  origEl.textContent = item.originalName;
+
+  const statusWrap = document.createElement('div');
+  statusWrap.appendChild(buildStatusChip(item));
+
+  const nameCol = document.createElement('div');
+  if (item.extracting) {
+    const span = document.createElement('span');
+    span.className = 'col-newname muted';
+    span.textContent = 'reading…';
+    nameCol.appendChild(span);
+  } else if (item.editingName || !item.vorname || !item.nachname) {
+    const wrap = document.createElement('div');
+    wrap.className = 'name-inputs';
+
+    const vIn = document.createElement('input');
+    vIn.type = 'text'; vIn.placeholder = 'First Name'; vIn.value = item.vorname;
+    vIn.addEventListener('input', () => {
+      item.vorname = vIn.value;
+      item.detected = true;
+      renamed = false;
+      item.newName = computeNewName(item);
+      patchRowInPlace(row, item);
+      updateSummary();
+      touchFooter();
+    });
+
+    const nIn = document.createElement('input');
+    nIn.type = 'text'; nIn.placeholder = 'Last Name'; nIn.value = item.nachname;
+    nIn.addEventListener('input', () => {
+      item.nachname = nIn.value;
+      item.detected = true;
+      renamed = false;
+      item.newName = computeNewName(item);
+      patchRowInPlace(row, item);
+      updateSummary();
+      touchFooter();
+    });
+
+    wrap.appendChild(vIn); wrap.appendChild(nIn);
+    nameCol.appendChild(wrap);
+
+    const footerEl = buildNameFooterEl(item);
+    if (footerEl) nameCol.appendChild(footerEl);
+  } else {
+    const displayWrap = document.createElement('div');
+    displayWrap.className = 'name-display';
+
+    const span = document.createElement('span');
+    span.className = 'col-newname';
+    span.textContent = item.newName;
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'name-edit-btn';
+    editBtn.title = 'Correct name';
+    editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    editBtn.addEventListener('click', () => {
+      item.editingName = true;
+      render();
+    });
+
+    displayWrap.appendChild(span);
+    displayWrap.appendChild(editBtn);
+    nameCol.appendChild(displayWrap);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'row-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'icon-btn';
+  dlBtn.title = 'Download';
+  dlBtn.disabled = !item.newName;
+  dlBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5M12 15V3M21 21H3"/></svg>';
+  dlBtn.addEventListener('click', () => downloadSingle(item));
+
+  const rmBtn = document.createElement('button');
+  rmBtn.className = 'icon-btn danger';
+  rmBtn.title = 'Remove';
+  rmBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  rmBtn.addEventListener('click', () => { items = items.filter(i => i.id !== item.id); render(); touchFooter(); });
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(rmBtn);
+
+  row.appendChild(timeEl);
+  row.appendChild(origEl);
+  row.appendChild(statusWrap);
+  row.appendChild(nameCol);
+  row.appendChild(actions);
+
+  return row;
+}
+
+function downloadSingle(item) {
+  const url = URL.createObjectURL(item.file);
+  const a = document.createElement('a');
+  a.href = url; a.download = item.newName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function openDocument(item) {
+  const url = URL.createObjectURL(item.file);
+  window.open(url, '_blank');
+}
+
+downloadAllBtn.addEventListener('click', async () => {
+  const validItems = items.filter(i => i.newName);
+  if (validItems.length === 0) return;
+
+  downloadAllBtn.disabled = true;
+  const originalLabel = downloadAllBtn.innerHTML;
+  downloadAllBtn.innerHTML = 'Packing…';
+
+  try {
+    const zip = new JSZip();
+    validItems.forEach(item => zip.file(item.newName, item.file));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'renamed_documents.zip';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('Error creating ZIP file: ' + err.message);
+  } finally {
+    downloadAllBtn.disabled = false;
+    downloadAllBtn.innerHTML = originalLabel;
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  if (items.length > 0) {
+    const confirmed = confirm('Really reset? All uploaded documents will be deleted.');
+    if (!confirmed) return;
+  }
+
+  items = [];
+  renamed = false;
+  descriptionInput.value = '';
+  dateInput.value = '';
+  dateInput.classList.remove('has-value');
+  selectedDate = null;
+  closeCalendar();
+  footerNote.textContent = 'No activity yet.';
+
+  render();
+});
+
+render();
+
+/* ==========================================================
+   Tool-Umschalter (Document Renamer <-> PDF Splitter)
+   Sidebar auf Höhe des Logos: klappt auf und schiebt den
+   Hauptbereich (app-main) nach rechts
+   ========================================================== */
+const toolsSidebar = document.getElementById('toolsSidebar');
+const toolsSidebarToggle = document.getElementById('toolsSidebarToggle');
+const renamerView = document.getElementById('renamerView');
+const splitterView = document.getElementById('splitterView');
+const gotoSplitterBtn = document.getElementById('gotoSplitterBtn');
+const gotoRenamerBtn = document.getElementById('gotoRenamerBtn');
+
+function showView(name) {
+  renamerView.style.display = name === 'renamer' ? '' : 'none';
+  splitterView.style.display = name === 'splitter' ? '' : 'none';
+  gotoRenamerBtn.classList.toggle('active', name === 'renamer');
+  gotoSplitterBtn.classList.toggle('active', name === 'splitter');
+}
+
+function openDrawer() { toolsSidebar.classList.add('open'); }
+function closeDrawer() { toolsSidebar.classList.remove('open'); }
+
+toolsSidebarToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (toolsSidebar.classList.contains('open')) closeDrawer(); else openDrawer();
+});
+
+document.addEventListener('click', (e) => {
+  if (toolsSidebar.classList.contains('open') && !toolsSidebar.contains(e.target)) closeDrawer();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+gotoSplitterBtn.addEventListener('click', () => { showView('splitter'); closeDrawer(); });
+gotoRenamerBtn.addEventListener('click', () => { showView('renamer'); closeDrawer(); });
+
+showView('renamer'); // Standard: wie bisher direkt der Document Renamer
+
+/* ==========================================================
+   PDF Splitter
+   ========================================================== */
+const splitFileInput = document.getElementById('splitFileInput');
+const splitAddFileBtn = document.getElementById('splitAddFileBtn');
+const splitStartBtn = document.getElementById('splitStartBtn');
+const splitToRenameBtn = document.getElementById('splitToRenameBtn');
+const splitDownloadAllBtn = document.getElementById('splitDownloadAllBtn');
+const splitResetBtn = document.getElementById('splitResetBtn');
+const splitDropCard = document.getElementById('splitDropCard');
+const splitTbody = document.getElementById('splitTbody');
+const pagesPerSplitInput = document.getElementById('pagesPerSplit');
+const splitSourceInfoPill = document.getElementById('splitSourceInfoPill');
+const splitSourceInfo = document.getElementById('splitSourceInfo');
+const splitStatusPill = document.getElementById('splitStatusPill');
+const splitOkCountEl = document.getElementById('splitOkCount');
+const splitTotalCountEl = document.getElementById('splitTotalCount');
+const splitFooterNote = document.getElementById('splitFooterNote');
+
+let sourcePdfFile = null;   // File-Objekt der hochgeladenen PDF
+let sourcePdfBytes = null;  // ArrayBuffer der Original-PDF
+let sourcePageCount = 0;
+let splitParts = [];        // { id, index, startPage, endPage, filename, blob }
+let splitIdCounter = 0;
+
+splitAddFileBtn.addEventListener('click', () => splitFileInput.click());
+splitFileInput.addEventListener('change', () => {
+  if (splitFileInput.files && splitFileInput.files[0]) handleSplitFile(splitFileInput.files[0]);
+  splitFileInput.value = '';
+});
+
+['dragover'].forEach(evt => splitDropCard.addEventListener(evt, e => { e.preventDefault(); splitDropCard.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(evt => splitDropCard.addEventListener(evt, e => { e.preventDefault(); splitDropCard.classList.remove('dragover'); }));
+splitDropCard.addEventListener('drop', e => {
+  const files = Array.from(e.dataTransfer.files || []).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (files[0]) handleSplitFile(files[0]);
+});
+
+async function handleSplitFile(file) {
+  try {
+    const buffer = await file.arrayBuffer();
+    const pdfDoc = await PDFLib.PDFDocument.load(buffer);
+    sourcePdfFile = file;
+    sourcePdfBytes = buffer;
+    sourcePageCount = pdfDoc.getPageCount();
+    splitParts = [];
+
+    splitSourceInfoPill.style.display = '';
+    splitSourceInfo.value = `${file.name} (${sourcePageCount} pages)`;
+
+    splitStartBtn.disabled = false;
+    splitFooterNote.textContent = `File loaded: ${file.name} — ${sourcePageCount} pages. Last updated: ${nowStamp()}`;
+    renderSplitTable();
+  } catch (err) {
+    console.error(err);
+    alert('This file could not be read as a PDF: ' + err.message);
+  }
+}
+
+pagesPerSplitInput.addEventListener('input', () => {
+  if (parseInt(pagesPerSplitInput.value, 10) < 1) pagesPerSplitInput.value = 1;
+});
+
+splitStartBtn.addEventListener('click', async () => {
+  if (!sourcePdfBytes) return;
+  const pagesPerFile = Math.max(1, parseInt(pagesPerSplitInput.value, 10) || 1);
+
+  splitStartBtn.disabled = true;
+  const originalLabel = splitStartBtn.innerHTML;
+  splitStartBtn.innerHTML = 'Splitting…';
+
+  try {
+    const baseName = sourcePdfFile.name.replace(/\.pdf$/i, '');
+    const srcDoc = await PDFLib.PDFDocument.load(sourcePdfBytes);
+    const totalPages = srcDoc.getPageCount();
+    const parts = [];
+
+    for (let start = 0; start < totalPages; start += pagesPerFile) {
+      const end = Math.min(start + pagesPerFile, totalPages);
+      const newDoc = await PDFLib.PDFDocument.create();
+      const pageIndices = [];
+      for (let p = start; p < end; p++) pageIndices.push(p);
+      const copiedPages = await newDoc.copyPages(srcDoc, pageIndices);
+      copiedPages.forEach(pg => newDoc.addPage(pg));
+      const newBytes = await newDoc.save();
+      const blob = new Blob([newBytes], { type: 'application/pdf' });
+
+      const partIndex = parts.length + 1;
+      const rangeLabel = (end - start === 1) ? `Page ${start + 1}` : `Pages ${start + 1}–${end}`;
+      const filename = (end - start === 1)
+        ? `${baseName}_Page-${start + 1}.pdf`
+        : `${baseName}_Pages-${start + 1}-${end}.pdf`;
+
+      parts.push({
+        id: splitIdCounter++,
+        index: partIndex,
+        rangeLabel,
+        filename,
+        blob
+      });
+    }
+
+    splitParts = parts;
+    renderSplitTable();
+    splitFooterNote.textContent = `PDF split into ${parts.length} parts. Last updated: ${nowStamp()}`;
+  } catch (err) {
+    console.error(err);
+    alert('Error splitting PDF: ' + err.message);
+  } finally {
+    splitStartBtn.disabled = false;
+    splitStartBtn.innerHTML = originalLabel;
+  }
+});
+
+splitToRenameBtn.addEventListener('click', () => {
+  if (splitParts.length === 0) return;
+  const files = splitParts.map(part => new File([part.blob], part.filename, { type: 'application/pdf' }));
+  showView('renamer');
+  items = []; // Renamer-Liste leeren, damit nur die gesplitteten PDFs ankommen (nicht die volle Originaldatei)
+  handleFiles(files);
+});
+
+function renderSplitTable() {
+  splitTbody.innerHTML = '';
+
+  if (splitParts.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-row';
+    empty.innerHTML = sourcePdfFile
+      ? 'Not split yet. Choose pages per PDF and click <strong id="splitEmptyStart">Split PDF</strong>.'
+      : 'No PDF file uploaded yet. <strong id="splitEmptyAdd">Add File</strong>';
+    splitTbody.appendChild(empty);
+    const emptyAdd = document.getElementById('splitEmptyAdd');
+    if (emptyAdd) emptyAdd.addEventListener('click', () => splitFileInput.click());
+    const emptyStart = document.getElementById('splitEmptyStart');
+    if (emptyStart) emptyStart.addEventListener('click', () => splitStartBtn.click());
+  } else {
+    splitParts.forEach(part => splitTbody.appendChild(buildSplitRow(part)));
+  }
+
+  const total = splitParts.length;
+  splitOkCountEl.textContent = total;
+  splitTotalCountEl.textContent = total;
+  splitStatusPill.classList.toggle('empty', total === 0);
+  splitDownloadAllBtn.disabled = total === 0;
+  splitToRenameBtn.disabled = total === 0;
+}
+
+function buildSplitRow(part) {
+  const row = document.createElement('div');
+  row.className = 'trow row-grid-split';
+
+  const partEl = document.createElement('span');
+  partEl.className = 'col-time';
+  partEl.textContent = `Part ${part.index}`;
+
+  const rangeEl = document.createElement('span');
+  rangeEl.className = 'col-original';
+  rangeEl.textContent = part.rangeLabel;
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'col-newname';
+  nameEl.textContent = part.filename;
+
+  const statusWrap = document.createElement('div');
+  const chip = document.createElement('span');
+  chip.className = 'status-chip status-ok';
+  chip.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Ready';
+  statusWrap.appendChild(chip);
+
+  const actions = document.createElement('div');
+  actions.className = 'row-actions';
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'icon-btn';
+  dlBtn.title = 'Download';
+  dlBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5M12 15V3M21 21H3"/></svg>';
+  dlBtn.addEventListener('click', () => downloadSplitPart(part));
+
+  const rmBtn = document.createElement('button');
+  rmBtn.className = 'icon-btn danger';
+  rmBtn.title = 'Remove';
+  rmBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  rmBtn.addEventListener('click', () => { splitParts = splitParts.filter(p => p.id !== part.id); renderSplitTable(); });
+
+  actions.appendChild(dlBtn);
+  actions.appendChild(rmBtn);
+
+  row.appendChild(partEl);
+  row.appendChild(rangeEl);
+  row.appendChild(nameEl);
+  row.appendChild(statusWrap);
+  row.appendChild(actions);
+
+  return row;
+}
+
+function downloadSplitPart(part) {
+  const url = URL.createObjectURL(part.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = part.filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+splitDownloadAllBtn.addEventListener('click', async () => {
+  if (splitParts.length === 0) return;
+
+  splitDownloadAllBtn.disabled = true;
+  const originalLabel = splitDownloadAllBtn.innerHTML;
+  splitDownloadAllBtn.innerHTML = 'Packing…';
+
+  try {
+    const zip = new JSZip();
+    splitParts.forEach(part => zip.file(part.filename, part.blob));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const zipBaseName = sourcePdfFile ? sourcePdfFile.name.replace(/\.pdf$/i, '') : 'split';
+    a.href = url; a.download = `${zipBaseName}_split.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('Error creating ZIP file: ' + err.message);
+  } finally {
+    splitDownloadAllBtn.disabled = false;
+    splitDownloadAllBtn.innerHTML = originalLabel;
+  }
+});
+
+splitResetBtn.addEventListener('click', () => {
+  if (sourcePdfFile || splitParts.length > 0) {
+    const confirmed = confirm('Really reset? The loaded PDF and all created parts will be deleted.');
+    if (!confirmed) return;
+  }
+
+  sourcePdfFile = null;
+  sourcePdfBytes = null;
+  sourcePageCount = 0;
+  splitParts = [];
+  pagesPerSplitInput.value = 2;
+  splitSourceInfoPill.style.display = 'none';
+  splitSourceInfo.value = '';
+  splitStartBtn.disabled = true;
+  splitFooterNote.textContent = 'No activity yet.';
+
+  renderSplitTable();
+});
+
+renderSplitTable();
+</script>
+</body>
+</html>
