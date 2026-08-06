@@ -208,7 +208,6 @@
     font:300 14px/1.6 var(--font);color:var(--ink-3);
     z-index:1;
   }
-  .loading-overlay.hidden{display:none;}
 </style>
 </head>
 <body>
@@ -220,11 +219,10 @@
       </svg>
       <div>
         <div class="brand-title">People & Talent Hub</div>
-        <div class="brand-sub">Interne Tools &amp; Rechner</div>
+        <div class="brand-sub">Internal Tools &amp; Calculators</div>
       </div>
     </div>
 
-    <div class="nav-section-label">Übersicht</div>
     <nav>
       <div class="nav-item" data-target="home">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg></span>
@@ -233,89 +231,7 @@
     </nav>
 
     <div class="nav-section-label">Categories</div>
-    <nav id="toolNav">
-
-      <div class="nav-group open" data-group="legal">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></span>
-          01 Legal &amp; Compliance
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub" data-target="urlaubsrechner" data-src="urlaubsrechner.html">
-            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
-            Vacation Calculator
-          </div>
-          <div class="nav-item sub" data-target="splitter" data-src="document-splitter-renamer.html">
-            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 14h6M9 17.5h6"/></svg></span>
-            Document Splitter &amp; Renamer
-          </div>
-        </div>
-      </div>
-
-      <div class="nav-group open" data-group="performance">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>
-          02 Performance &amp; Reward
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub" data-target="vsop" data-src="vsop-equity-calculator.html">
-            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7v10M9 9.5c0-1.2 1.3-2 3-2s3 .8 3 2-1.3 1.7-3 2-3 .8-3 2 1.3 2 3 2 3-.8 3-2"/></svg></span>
-            VSOP Equity Calculator
-          </div>
-          <div class="nav-item sub" data-target="shares" data-src="shares-calculator.html">
-            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M7 19V9M12 19V5M17 19v7"/></svg></span>
-            Shares Calculator
-          </div>
-        </div>
-      </div>
-
-      <div class="nav-group" data-group="development">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9.5 12 5l10 4.5-10 4.5-10-4.5Z"/><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M20 9.5v5.5"/></svg></span>
-          03 Development
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub empty">Coming soon</div>
-        </div>
-      </div>
-
-      <div class="nav-group" data-group="transitioning">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 21 6l-4 3.5"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 21.5 3 18l4-3.5"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg></span>
-          04 Employee Transitioning
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub empty">Coming soon</div>
-        </div>
-      </div>
-
-      <div class="nav-group" data-group="engagement">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></span>
-          05 Engagement
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub empty">Coming soon</div>
-        </div>
-      </div>
-
-      <div class="nav-group" data-group="analytics">
-        <div class="nav-group-header">
-          <span class="group-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
-          06 Analytics
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-        <div class="nav-group-items">
-          <div class="nav-item sub empty">Coming soon</div>
-        </div>
-      </div>
-
-    </nav>
+    <nav id="toolNav"><!-- rendered from tools-config.js --></nav>
 
     <div class="sidebar-footer">
       Wemolo · People &amp; Talent<br>Internal Tool Collection
@@ -323,57 +239,108 @@
   </aside>
 
   <main class="main">
-
-    <!-- Home / landing screen -->
     <div class="home visible" id="home">
       <div class="home-inner">
         <h1>People & Talent Hub</h1>
         <p class="lede">All internal HR calculators and tools in one place. Choose a tool on the left, or click a card below to get started.</p>
-        <div class="card-grid">
-          <div class="tool-card" data-target="urlaubsrechner" data-src="urlaubsrechner.html">
-            <div class="ico-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
-            <h3>Vacation Calculator</h3>
-            <p>Calculate remaining vacation days on exit and vacation reductions for special leave.</p>
-          </div>
-          <div class="tool-card" data-target="vsop" data-src="vsop-equity-calculator.html">
-            <div class="ico-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7v10M9 9.5c0-1.2 1.3-2 3-2s3 .8 3 2-1.3 1.7-3 2-3 .8-3 2 1.3 2 3 2 3-.8 3-2"/></svg></div>
-            <h3>VSOP Equity Calculator</h3>
-            <p>Calculate equity thresholds and vesting shares for virtual option programs.</p>
-          </div>
-          <div class="tool-card" data-target="shares" data-src="shares-calculator.html">
-            <div class="ico-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M7 19V9M12 19V5M17 19v7"/></svg></div>
-            <h3>Shares Calculator</h3>
-            <p>Share calculations including PDF export for cap table scenarios.</p>
-          </div>
-          <div class="tool-card" data-target="splitter" data-src="document-splitter-renamer.html">
-            <div class="ico-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 14h6M9 17.5h6"/></svg></div>
-            <h3>Document Splitter &amp; Renamer</h3>
-            <p>Automatically split, rename, and export documents.</p>
-          </div>
-        </div>
+        <div class="card-grid" id="cardGrid"><!-- rendered from tools-config.js --></div>
       </div>
     </div>
-
-    <!-- Tool iframes are created lazily in JS -->
     <div id="frameHost" style="width:100%;height:100%;position:relative;"></div>
-
   </main>
+
+<!-- Tool list lives here — edit THIS file to add/remove/move tools, never index.html -->
+<script src="tools-config.js"></script>
 
 <script>
 (function(){
+
+  // ---- Icon library: add new keys here if you want a new icon option ----
+  var ICONS = {
+    folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+    trending: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    graduation: '<path d="M2 9.5 12 5l10 4.5-10 4.5-10-4.5Z"/><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M20 9.5v5.5"/>',
+    repeat: '<path d="M17 2.5 21 6l-4 3.5"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 21.5 3 18l4-3.5"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+    check: '<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+    barchart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    file: '<path d="M14 3v5h5"/><path d="M6 3h8l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 14h6M9 17.5h6"/>',
+    coins: '<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7v10M9 9.5c0-1.2 1.3-2 3-2s3 .8 3 2-1.3 1.7-3 2-3 .8-3 2 1.3 2 3 2 3-.8 3-2"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    default: '<path d="M9 18l6-6-6-6"/>'
+  };
+  function iconSvg(key, size){
+    var d = ICONS[key] || ICONS.default;
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  }
+
+  var config = (window.PEOPLE_APP_CONFIG && window.PEOPLE_APP_CONFIG.categories) || [];
+  var toolNav = document.getElementById('toolNav');
+  var cardGrid = document.getElementById('cardGrid');
+
+  // ---- Render sidebar categories + tools ----
+  config.forEach(function(cat, i){
+    var group = document.createElement('div');
+    group.className = 'nav-group' + (i < 2 ? ' open' : ''); // first two open by default
+    group.dataset.group = cat.id;
+
+    var header = document.createElement('div');
+    header.className = 'nav-group-header';
+    header.innerHTML =
+      '<span class="group-ico">' + iconSvg(cat.icon, 18) + '</span>' +
+      cat.label +
+      '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+    header.addEventListener('click', function(){ group.classList.toggle('open'); });
+    group.appendChild(header);
+
+    var itemsWrap = document.createElement('div');
+    itemsWrap.className = 'nav-group-items';
+
+    if (!cat.tools || cat.tools.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'nav-item sub empty';
+      empty.textContent = 'Coming soon';
+      itemsWrap.appendChild(empty);
+    } else {
+      cat.tools.forEach(function(tool){
+        var item = document.createElement('div');
+        item.className = 'nav-item sub';
+        item.dataset.target = tool.id;
+        item.dataset.src = tool.file;
+        item.innerHTML = '<span class="ico">' + iconSvg(tool.icon, 19) + '</span>' + tool.label;
+        itemsWrap.appendChild(item);
+      });
+    }
+
+    group.appendChild(itemsWrap);
+    toolNav.appendChild(group);
+  });
+
+  // ---- Render home page cards ----
+  config.forEach(function(cat){
+    (cat.tools || []).forEach(function(tool){
+      var card = document.createElement('div');
+      card.className = 'tool-card';
+      card.dataset.target = tool.id;
+      card.dataset.src = tool.file;
+      card.innerHTML =
+        '<div class="ico-wrap">' + iconSvg(tool.icon, 22) + '</div>' +
+        '<h3>' + tool.label + '</h3>' +
+        '<p>' + (tool.description || '') + '</p>';
+      cardGrid.appendChild(card);
+    });
+  });
+
+  // ---- Navigation / iframe logic (unchanged behaviour) ----
   var frameHost = document.getElementById('frameHost');
   var home = document.getElementById('home');
-  var navItems = document.querySelectorAll('.nav-item[data-target], .tool-card');
   var navGroups = document.querySelectorAll('.nav-group');
-  var frames = {}; // target -> iframe element, created on first visit
+  var frames = {};
 
   function setActiveNav(target){
-    navItems.forEach(function(el){
-      if (el.classList.contains('nav-item')) {
-        el.classList.toggle('active', el.dataset.target === target);
-      }
+    document.querySelectorAll('.nav-item[data-target]').forEach(function(el){
+      el.classList.toggle('active', el.dataset.target === target);
     });
-    // auto-expand the group that contains the active tool
     navGroups.forEach(function(group){
       if (group.querySelector('.nav-item[data-target="' + target + '"]')) {
         group.classList.add('open');
@@ -381,25 +348,13 @@
     });
   }
 
-  // Accordion: toggle group open/closed on header click
-  navGroups.forEach(function(group){
-    var header = group.querySelector('.nav-group-header');
-    header.addEventListener('click', function(){
-      group.classList.toggle('open');
-    });
-  });
-
   function showTarget(target, src){
-    // hide home
     home.classList.toggle('visible', target === 'home');
-    // hide all frames
     Object.keys(frames).forEach(function(key){
       frames[key].classList.toggle('visible', key === target);
     });
 
     if (target !== 'home' && !frames[target]) {
-      // lazy-create the iframe on first visit so libraries (pdf.js, jsPDF, etc.)
-      // only load once a tool is actually opened
       var overlay = document.createElement('div');
       overlay.className = 'loading-overlay';
       overlay.textContent = 'Loading tool…';
@@ -408,9 +363,7 @@
       var frame = document.createElement('iframe');
       frame.className = 'tool-frame';
       frame.src = src;
-      frame.addEventListener('load', function(){
-        overlay.remove();
-      });
+      frame.addEventListener('load', function(){ overlay.remove(); });
       frameHost.appendChild(frame);
       frames[target] = frame;
       requestAnimationFrame(function(){ frame.classList.add('visible'); });
@@ -420,16 +373,17 @@
     window.location.hash = target;
   }
 
-  navItems.forEach(function(el){
-    el.addEventListener('click', function(){
-      showTarget(el.dataset.target, el.dataset.src);
-    });
+  // Event delegation: works for nav items AND home cards, including ones
+  // rendered dynamically above — no need to re-bind when config changes.
+  document.body.addEventListener('click', function(e){
+    var el = e.target.closest('[data-target]');
+    if (!el) return;
+    showTarget(el.dataset.target, el.dataset.src);
   });
 
   // deep-linking via hash, e.g. index.html#vsop
   var initial = window.location.hash.replace('#','');
-  var validTargets = ['urlaubsrechner','vsop','shares','splitter'];
-  if (validTargets.indexOf(initial) !== -1) {
+  if (initial) {
     var el = document.querySelector('.nav-item[data-target="' + initial + '"]');
     if (el) showTarget(initial, el.dataset.src);
   }
