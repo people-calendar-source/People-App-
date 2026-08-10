@@ -44,6 +44,13 @@ window.PEOPLE_APP_CONFIG = {
           file: "document-splitter-renamer.html",
           icon: "file",
           description: "Automatically split, rename, and export documents."
+        },
+        {
+      id: "long-leave",
+      label: "Long Leave Impact Calculator",
+      file: "long-leave-impact-calculator.html",
+      icon: "calendar",
+      description: "Impact of Unpaid Leave, Time Out, and Parental Leave on salary, benefits, and vacation entitlement — including required Personio/payroll steps."
         }
       ]
     },
