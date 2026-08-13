@@ -355,6 +355,12 @@
 
   .info-note { font-size: 14px; font-weight: 300; color: #6B6B74; background: #FAFAFA; border: 1px solid #E4E4E7; border-radius: 16px; padding: 16px 20px; margin-top: 4px; line-height: 1.6; }
   .info-note.warn { background: #FDEFDD; color: #7A3E00; }
+  .info-note.policy-warning {
+    background: #FBEAE6; color: #B0402C; border-color: #F0C6BC; font-weight: 500; margin-top: 12px;
+  }
+  body[data-layout="karten3"] .info-note.policy-warning {
+    background: #FBEAE6; color: #B0402C; border-color: #F0C6BC;
+  }
 
   .btn-row { display: flex; gap: 12px; margin-top: 8px; }
   button.btn {
@@ -489,6 +495,7 @@
         </div>
       </div>
       <div class="info-note" id="unpaidRangeNote">—</div>
+      <div class="info-note policy-warning" id="unpaidPolicyWarning" style="display:none"></div>
       </div>
       </div>
     </div>
@@ -545,6 +552,7 @@
         <input type="number" id="toSaveMonths" min="0" step="1">
       </div>
       <div class="info-note" id="sparphaseNote">Saving phase: —</div>
+      <div class="info-note policy-warning" id="timeoutPolicyWarning" style="display:none"></div>
       </div>
       </div>
     </div>
@@ -1017,8 +1025,16 @@ function calculate(){
 
   if (program === 'unpaid'){
     const s = pickers.unpaidStart.getDate(), e = pickers.unpaidEnd.getDate();
-    if (!s || !e || e < s){ document.getElementById('results').innerHTML = '<div class="info-note warn">Please select a valid period.</div>'; return; }
+    if (!s || !e || e < s){ document.getElementById('unpaidPolicyWarning').style.display = 'none'; document.getElementById('results').innerHTML = '<div class="info-note warn">Please select a valid period.</div>'; return; }
     const days = daysInclusive(s,e);
+
+    const unpaidWarnEl = document.getElementById('unpaidPolicyWarning');
+    if (days > 28){
+      unpaidWarnEl.innerHTML = '⚠ Policy note: Unpaid Leave is limited to a maximum of 4 weeks (28 days). The entered period is <strong>'+days+' days</strong>, which exceeds this limit. The calculation below still applies all standard rules and shows the impact for the period as entered.';
+      unpaidWarnEl.style.display = 'block';
+    } else {
+      unpaidWarnEl.style.display = 'none';
+    }
 
     html += card('Status', 'auto',
       sbox('Status','Active','unchanged'), '');
@@ -1108,7 +1124,7 @@ function calculate(){
 
   else if (program === 'timeout'){
     const s = pickers.toStart.getDate(), e = pickers.toEnd.getDate();
-    if (!s || !e || e < s){ document.getElementById('results').innerHTML = '<div class="info-note warn">Please select a valid leave phase period.</div>'; return; }
+    if (!s || !e || e < s){ document.getElementById('timeoutPolicyWarning').style.display = 'none'; document.getElementById('results').innerHTML = '<div class="info-note warn">Please select a valid leave phase period.</div>'; return; }
     const fmList = fullMonthsInRange(s,e);
     const freistellungMonths = fmList.length;
     const freistellungLabel = monthRangeLabel(fmList);
@@ -1117,6 +1133,23 @@ function calculate(){
     const spEnd = addDays(s,-1);
     const spStart = monthsBefore(s, saveMonths);
     const spLabel = fmtDateDE(spStart)+' – '+fmtDateDE(spEnd);
+
+    const isFullMonthStart = s.getDate() === 1;
+    const isFullMonthEnd = e.getDate() === monthEndD(e.getFullYear(), e.getMonth()).getDate();
+    const timeoutWarnEl = document.getElementById('timeoutPolicyWarning');
+    let timeoutWarnHtml = '';
+    if (!isFullMonthStart || !isFullMonthEnd){
+      timeoutWarnHtml += '⚠ Policy note: The leave phase (Release Period) must always consist of full calendar months only, starting on the 1st and ending on the last day of a month. The entered period is not aligned to full months. The calculation below still applies all standard rules to the period as entered.';
+    }
+    if (freistellungMonths > 3){
+      timeoutWarnHtml += (timeoutWarnHtml ? '<br><br>' : '') + '⚠ Policy note: The leave phase (Release Period) is limited to a maximum of 3 months. The entered period covers <strong>'+freistellungMonths+' months</strong>, which exceeds this limit. The calculation below still applies all standard rules and shows the impact for the period as entered.';
+    }
+    if (timeoutWarnHtml){
+      timeoutWarnEl.innerHTML = timeoutWarnHtml;
+      timeoutWarnEl.style.display = 'block';
+    } else {
+      timeoutWarnEl.style.display = 'none';
+    }
 
     // Mitarbeitendenstatus - AUTO, since Personio is configured to auto-set inactive for the entered Freistellungsphase
     html += card('Status', 'auto',
@@ -1168,20 +1201,20 @@ function calculate(){
       const leaseCost = carLease*freistellungMonths;
       html += card('Company car', 'manual',
         sbox('Saving phase','Unchanged')
-        + sbox('Leave phase (if kept)', fmtEUR(carConv)+' + '+fmtEUR(carLease), 'Salary conversion + leasing rate'),
-        'The salary conversion remains unchanged in both phases. If the employee keeps the car during the leave phase, they additionally bear the leasing rate themselves for every full month.',
+        + sbox('Leave phase (if kept)', fmtEUR(carLease), 'Full leasing rate'),
+        'The salary conversion remains unchanged during the saving phase. If the employee keeps the car during the leave phase, the salary conversion stops and the employee instead bears the full leasing rate themselves for every full month.',
         explainBox('Calculation basis', [
-          {strong:'Salary conversion', text: fmtEUR(carConv)+', unchanged.'},
-          {strong:'Leasing rate (if kept)', text: fmtEUR(carLease)+' × '+freistellungMonths+' months = <strong>'+fmtEUR(leaseCost)+'</strong>.'}
+          {strong:'Saving phase', text: fmtEUR(carConv)+', unchanged.'},
+          {strong:'Leave phase (if kept)', text: fmtEUR(carLease)+' × '+freistellungMonths+' months = <strong>'+fmtEUR(leaseCost)+'</strong>.'}
         ]));
-      actions.push('If the employee keeps the Company car: the salary conversion stays at <span class="result">'+fmtEUR(carConv)+'</span>. For the months <span class="result">'+freistellungLabel+'</span>, the employee must additionally bear the full leasing rate of <span class="result">'+fmtEUR(carLease)+'</span> themselves.');
+      actions.push('If the employee keeps the Company car: the salary conversion stops for the months <span class="result">'+freistellungLabel+'</span>. Instead, the employee must bear the full leasing rate of <span class="result">'+fmtEUR(carLease)+'</span> themselves for those months.');
     }
 
-    if (freistellungMonths > 1){
+    {
       const abmeldeTO = fmtDateDE(s), anmeldeTO = fmtDateDE(addDays(e,1));
       html += card('Probonio benefits', 'manual',
         sbox('Saving phase', 'Unchanged') + sbox('Leave phase', 'Fully stopped'),
-        'Since the leave phase lasts longer than one month, all Probonio benefits are fully stopped for their entire duration ('+freistellungMonths+' months):'
+        'All Probonio benefits are fully stopped for the entire leave phase ('+freistellungMonths+' month'+(freistellungMonths===1?'':'s')+'), regardless of its length:'
         + '<ul style="margin:10px 0 0 20px;padding:0;line-height:1.9">'
           + '<li>EGYM Wellpass</li>'
           + '<li>Urban Sports</li>'
@@ -1191,10 +1224,6 @@ function calculate(){
       actions.push('Deregister the employee from Probonio benefits as of <span class="result">'+abmeldeTO+'</span> and re-register as of <span class="result">'+anmeldeTO+'</span>.');
       actions.push('Inform the tax office about the Probonio pause for the period '+abmeldeTO+' – '+fmtDateDE(e)+'.');
       actions.push('Bike leasing: decide case-by-case whether to return the bike or let the employee keep it. If kept, Wemolo does not contribute during the leave; the employee\'s full share for the entire leave period is deducted retroactively from the first payroll after return.');
-    } else {
-      html += card('Probonio benefits', '',
-        sbox('Saving phase', 'Unchanged') + sbox('Leave phase', 'Fully retained'),
-        'The leave phase lasts at most one month, benefits remain in place. No action needed.');
     }
 
     const urlaubKuerzung = vacDays/12*freistellungMonths;
@@ -1284,14 +1313,14 @@ function calculate(){
       } else {
         const leaseCost = carLease*fullMonths;
         html += card('Company car', 'manual',
-          sbox('Salary conversion', fmtEUR(carConv), 'always, every month')
-          + sbox('Leasing rate (if kept)', fmtEUR(carLease), fullMonths+' full month(s)'),
-          'The salary conversion remains unchanged. If the employee keeps the car, they additionally bear the leasing rate themselves for every full month of absence; for partial months only the salary conversion applies.',
+          sbox('Partial months','Salary conversion unchanged')
+          + sbox('Full months of absence', fmtEUR(carLease), 'Full leasing rate'),
+          'For partial months, the salary conversion continues unchanged. For every full calendar month of absence, the salary conversion stops and the employee instead bears the full leasing rate themselves.',
           explainBox('Calculation basis', [
-            {strong:'Salary conversion', text: fmtEUR(carConv)+', unchanged.'},
-            {strong:'Leasing rate (if kept)', text: fmtEUR(carLease)+' × '+fullMonths+' months = <strong>'+fmtEUR(leaseCost)+'</strong>.'}
+            {strong:'Partial months', text: fmtEUR(carConv)+', unchanged.'},
+            {strong:'Full months of absence', text: fmtEUR(carLease)+' × '+fullMonths+' months = <strong>'+fmtEUR(leaseCost)+'</strong>.'}
           ]));
-        actions.push('If the employee keeps the Company car: the salary conversion stays at <span class="result">'+fmtEUR(carConv)+'</span> throughout. For the full months of absence <span class="result">'+fullMonthsLabel+'</span>, the employee must additionally bear the full leasing rate of <span class="result">'+fmtEUR(carLease)+'</span> themselves.');
+        actions.push('If the employee keeps the Company car: the salary conversion continues for partial months. For the full months of absence <span class="result">'+fullMonthsLabel+'</span>, stop the salary conversion and instead have the employee bear the full leasing rate of <span class="result">'+fmtEUR(carLease)+'</span> themselves.');
       }
     }
 
