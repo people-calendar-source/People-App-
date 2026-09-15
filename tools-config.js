@@ -51,6 +51,13 @@ window.PEOPLE_APP_CONFIG = {
       file: "long-leave-impact-calculator.html",
       icon: "calendar",
       description: "Impact of Unpaid Leave, Time Out, and Parental Leave on salary, benefits, and vacation entitlement — including required Personio/payroll steps."
+        },
+        {
+      id: "parental-leave-salary",
+      label: "Parental Leave Salary Calculator",
+      file: "parental-leave-salary-calculator.html",
+      icon: "calculator",
+      description: "Day-exact prorated salary calculations across multiple parental leave periods, including JAEG threshold checks for PKV/GKV eligibility."
         }
       ]
     },
