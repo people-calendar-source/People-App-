@@ -638,6 +638,23 @@ function handleFiles(fileListObj) {
 
 const NAME_PART = "[A-ZÄÖÜ][a-zA-ZäöüßÄÖÜ]+(?:\\s*-\\s*[A-ZÄÖÜ][a-zA-ZäöüßÄÖÜ]+)*";
 
+// Ein vollständiger Name kann aus 2 bis 4 einzelnen Namensteilen bestehen
+// (z.B. "Hans Max Müller" oder "Hasssan Bin Altaf"), nicht nur aus genau zwei.
+const FULL_NAME = '(?:' + NAME_PART + '(?:\\s+' + NAME_PART + '){1,3})';
+
+/**
+ * Zerlegt einen erkannten Vollnamen (z.B. "Hans Max Müller") in Vorname(n)
+ * und Nachname. Das letzte Wort gilt als Nachname, alles davor als Vorname(n)
+ * - so bleiben mehrteilige Vornamen ("Hans Max") erhalten.
+ */
+function splitFullName(fullNameStr) {
+  const normalized = fullNameStr.trim().replace(/\s*-\s*/g, '-');
+  const parts = normalized.split(/\s+/);
+  const nachname = parts.pop();
+  const vorname = parts.join(' ');
+  return { vorname, nachname };
+}
+
 /**
  * Fallback-Erkennung: sucht nach dem klassischen Anschriftenfeld eines
  * Geschäftsbriefs - eine Zeile mit "Vorname Nachname", direkt gefolgt von
@@ -647,7 +664,7 @@ function detectNameFromAddressBlock(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const streetPattern = /(straße|strasse|str\.?|weg|allee|platz|gasse|ring)\s*\d+/i;
   const postalPattern = /^\d{5}\s+\S+/;
-  const nameLinePattern = new RegExp('^(' + NAME_PART + ')\\s+(' + NAME_PART + ')$');
+  const nameLinePattern = new RegExp('^(' + FULL_NAME + ')$');
 
   for (let i = 0; i < lines.length - 1; i++) {
     const nameMatch = lines[i].match(nameLinePattern);
@@ -657,10 +674,7 @@ function detectNameFromAddressBlock(text) {
     const lineAfter = lines[i + 2] || '';
 
     if (streetPattern.test(nextLine) || postalPattern.test(nextLine) || postalPattern.test(lineAfter)) {
-      return {
-        vorname: nameMatch[1].replace(/\s*-\s*/g, '-'),
-        nachname: nameMatch[2].replace(/\s*-\s*/g, '-')
-      };
+      return splitFullName(nameMatch[1]);
     }
   }
   return null;
@@ -697,10 +711,10 @@ async function detectName(item) {
   try {
     const text = await extractText(item);
 
-    const namePattern = new RegExp('\\b(?:Mr|Mrs|Ms|Frau|Herrn|Herr)\\.?\\s+(' + NAME_PART + ')\\s+(' + NAME_PART + ')');
+    const namePattern = new RegExp('\\b(?:Mr|Mrs|Ms|Frau|Herrn|Herr)\\.?\\s+(' + FULL_NAME + ')');
     const rawMatch = text.match(namePattern);
     let match = rawMatch
-      ? { vorname: rawMatch[1].replace(/\s*-\s*/g, '-'), nachname: rawMatch[2].replace(/\s*-\s*/g, '-') }
+      ? splitFullName(rawMatch[1])
       : detectNameFromAddressBlock(text);
 
     if (match) {
@@ -718,7 +732,10 @@ async function detectName(item) {
 }
 
 function sanitize(str) {
-  return String(str || '').trim().replace(/\s+/g, '_').replace(/[\/\\:*?"<>|]/g, '');
+  // Mehrfache Leerzeichen zu einem zusammenfassen, aber Leerzeichen selbst
+  // NICHT durch Unterstriche ersetzen (z.B. "Positions- und Gehaltsanpassung"
+  // oder "Hans Max" sollen Leerzeichen behalten).
+  return String(str || '').trim().replace(/\s+/g, ' ').replace(/[\/\\:*?"<>|]/g, '');
 }
 
 function computeNewName(item) {
@@ -727,7 +744,11 @@ function computeNewName(item) {
   if (!description.trim() || !selectedDate) return null;
   const datePart = `${selectedDate.getFullYear()}${pad2(selectedDate.getMonth() + 1)}${pad2(selectedDate.getDate())}`;
   const ext = item.originalName.split('.').pop().toLowerCase();
-  return [datePart, sanitize(description), sanitize(item.vorname), sanitize(item.nachname)].join('_') + '.' + ext;
+  // Vorname und Nachname werden mit Leerzeichen zu einem vollständigen Namen
+  // verbunden (z.B. "Hans Max Müller"), nicht mit Unterstrich.
+  const fullName = `${sanitize(item.vorname)} ${sanitize(item.nachname)}`;
+  // Nur zwischen Datum / Beschreibung / Name steht ein Unterstrich.
+  return [datePart, sanitize(description), fullName].join('_') + '.' + ext;
 }
 
 function recomputeAll() {
