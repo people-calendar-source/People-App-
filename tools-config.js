@@ -56,7 +56,7 @@ window.PEOPLE_APP_CONFIG = {
       id: "parental-leave-salary",
       label: "Parental Leave Salary Calculator",
       file: "parental-leave-salary-calculator.html",
-      icon: "pacifier",
+      icon: "baby-bottle",
       description: "Day-exact prorated salary calculations across multiple parental leave periods, including JAEG threshold checks for PKV/GKV eligibility."
         }
       ]
