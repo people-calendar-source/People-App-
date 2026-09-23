@@ -108,16 +108,13 @@ window.PEOPLE_APP_CONFIG = {
       tools: []
     },
     {
-      id: "analytics",
-      label: "06 Analytics",
-      icon: "barchart",
-      tools: [
-        {
-          id: "bem-sickness-report",
+      id: "bem-sickness-report",
           label: "BEM Sickness Report",
           file: "BEM-report.html",
           icon: "calendar",
           description: "Analyze sick-leave patterns per employee and get BEM-stage recommendations for a chosen time period."
         }
       ]
+    }
+  ]
 };
