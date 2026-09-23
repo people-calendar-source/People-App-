@@ -120,4 +120,6 @@ window.PEOPLE_APP_CONFIG = {
           description: "Analyze sick-leave patterns per employee and get BEM-stage recommendations for a chosen time period."
         }
       ]
+      }
+    ]
 };
