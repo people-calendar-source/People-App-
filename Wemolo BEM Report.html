@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wemolo BEM Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --brand: #5046E8;
+    --brand-bg: #F0EFFD;
+    --brand-text: #10298E;
+    --field-border: #E4E4E7;
+    --field-focus: #5046E8;
+    --field-focus-ring: rgba(80,70,232,0.2);
+  }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 500px at 8% -8%, rgba(80,70,232,0.06), transparent 60%),
+      radial-gradient(700px 500px at 100% 0%, rgba(80,70,232,0.04), transparent 55%),
+      #F2F2F3;
+    font-family: "Albert Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #18181B;
+  }
+  .page { min-height: 100vh; display: flex; justify-content: center; padding: 48px 40px 96px; }
+  .wrap { width: 100%; max-width: 1600px; }
+
+  header { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; margin-bottom: 32px; margin-top: 8px; }
+  .brand svg { height: 22px; width: auto; display: block; color: #18181B; }
+  h1 { margin: 0; font-weight: 700; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
+  .subtitle { font-size: 13px; font-weight: 300; color: #6B6B74; line-height: 1.5; max-width: 100%; }
+
+  .reset-btn {
+    height: 34px; padding: 0 14px; border-radius: 1000px; border: 1px solid #E4E4E7; background: #FFFFFF;
+    display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 12.5px; font-weight: 500; color: #6B6B74;
+    cursor: pointer; transition: all 0.15s ease;
+  }
+  .reset-btn:hover { border-color: #5046E8; color: #5046E8; }
+
+  .card { background: #FFFFFF; border: 1px solid #E4E4E7; border-radius: 24px; padding: 28px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(24,24,27,0.04), 0 16px 40px -12px rgba(80,70,232,0.10); }
+  .card-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #AFAFB6; margin-bottom: 12px; }
+
+  /* Upload zone */
+  .drop-zone {
+    border: 1px solid #E4E4E7; border-radius: 20px; background: #FFFFFF;
+    padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(24,24,27,0.04);
+  }
+  .drop-zone:hover, .drop-zone.dragover { background: rgba(80,70,232,0.03); border-color: #5046E8; }
+  .drop-zone-icon { width: 52px; height: 52px; border-radius: 14px; background: #F0EFFD; color: #5046E8; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .drop-zone-title { font-size: 16px; font-weight: 700; color: #18181B; margin-bottom: 6px; }
+  .drop-zone-text { font-size: 13px; font-weight: 300; color: #6B6B74; line-height: 1.6; }
+  .drop-zone-steps {
+    text-align: left; margin: 20px 0 0; width: max-content; max-width: 100%; background: var(--brand-bg); border: 1px solid #DAD3F7;
+    border-radius: 16px; padding: 18px 20px; position: relative; left: 50%; transform: translateX(-50%);
+  }
+  .drop-zone-steps .steps-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--brand); margin-bottom: 14px; }
+  .drop-zone-steps .step-line { display: flex; align-items: flex-start; gap: 10px; font-size: 12.5px; font-weight: 400; color: #494950; line-height: 1.5; margin-bottom: 12px; }
+  .drop-zone-steps .step-text { white-space: nowrap; }
+  .drop-zone-steps .step-line:last-child { margin-bottom: 0; }
+  .drop-zone-steps .step-line b { font-weight: 700; color: #18181B; }
+  .drop-zone-steps .step-num {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; color: var(--brand);
+    font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(80,70,232,0.15); margin-top: 1px;
+  }
+  .drop-zone input[type=file] { display: none; }
+  .file-name-pill { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 14px; border-radius: 1000px; background: #F0EFFD; color: #10298E; font-size: 12px; font-weight: 600; }
+  .analyzed-period-pill { display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; height: 34px; border-radius: 1000px; font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+  .period-pill-blue { background: var(--brand-bg); color: var(--brand); }
+  .uniform-ctrl-btn { min-width: 168px; justify-content: center; }
+  .period-select-box {
+    border: 1.5px dashed #C9C6F5; border-radius: 20px; background: rgba(80,70,232,0.02);
+    padding: 48px 24px; text-align: center;
+  }
+  .period-select-icon { width: 52px; height: 52px; border-radius: 14px; background: #F0EFFD; color: #5046E8; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .period-select-title { font-size: 16px; font-weight: 700; color: #18181B; margin-bottom: 6px; }
+  .period-select-text { font-size: 13px; font-weight: 300; color: #6B6B74; margin-bottom: 20px; }
+  .period-select-fields { display: inline-flex; align-items: center; gap: 10px; background: var(--brand-bg); padding: 10px 20px; border-radius: 1000px; }
+  .period-select-fields .window-date-trigger { font-size: 13px; padding: 4px 8px; }
+  .window-date-wrap { position: relative; display: inline-block; }
+  .window-date-trigger {
+    border: 1px solid transparent; background: transparent; border-radius: 1000px; font-family: inherit; font-size: 12.5px;
+    font-weight: 500; color: var(--brand); padding: 3px 8px; outline: none; cursor: pointer; transition: all 0.15s ease;
+  }
+  .window-date-trigger:hover, .window-date-trigger.active { border-color: var(--brand); box-shadow: 0 0 0 2px var(--field-focus-ring); }
+  .cal-popover {
+    position: absolute; top: 100%; left: 0; margin-top: 8px; background: #FFFFFF; border: 1px solid #E4E4E7;
+    border-radius: 16px; box-shadow: 8px 8px 24px 16px rgba(0,0,0,0.06); padding: 14px; width: 248px; z-index: 50;
+    text-transform: none; letter-spacing: 0; white-space: normal;
+  }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-month-label { font-size: 13px; font-weight: 700; color: #18181B; }
+  .cal-month-label-btn { background: none; border: none; font-family: inherit; cursor: pointer; border-radius: 6px; padding: 2px 8px; }
+  .cal-month-label-btn:hover { background: var(--brand-bg); color: var(--brand-text); }
+  .cal-years-grid { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #F0EFFD; }
+  .cal-months-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .cal-month-cell {
+    padding: 10px 0; border-radius: 8px; border: none; background: #FAFAFA; font-family: inherit; font-size: 12.5px;
+    font-weight: 600; color: #494950; cursor: pointer; text-align: center;
+  }
+  .cal-month-cell:hover:not(.cal-month-disabled) { background: var(--brand-bg); color: var(--brand-text); }
+  .cal-month-disabled { color: #D7D6DE; cursor: default; }
+  .cal-month-selected { background: var(--brand); color: #FFFFFF; }
+  .cal-nav {
+    width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--brand-bg); color: var(--brand);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .cal-nav:hover { background: var(--brand); color: #FFFFFF; }
+  .cal-nav-disabled, .cal-nav:disabled { background: #F2F2F3; color: #D7D6DE; cursor: default; }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+  .cal-weekdays span { text-align: center; font-size: 9.5px; font-weight: 700; color: #AFAFB6; text-transform: uppercase; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    font-size: 12px; font-weight: 500; color: #494950; border: none; background: none; cursor: pointer;
+  }
+  .cal-day:hover:not(.cal-day-disabled):not(.cal-day-empty) { background: var(--brand-bg); color: var(--brand-text); }
+  .cal-day-empty { visibility: hidden; cursor: default; }
+  .cal-day-disabled { color: #E4E4E7; cursor: default; }
+  .cal-day-today { border: 1.5px solid var(--brand); }
+  .cal-day-selected { background: var(--brand); color: #FFFFFF; font-weight: 700; }
+  .cal-footer { margin-top: 10px; text-align: right; }
+  .cal-clear { background: none; border: none; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--brand); cursor: pointer; padding: 4px 6px; }
+  .cal-clear:hover { text-decoration: underline; }
+  .card-header-row { display: flex; align-items: center; justify-content: flex-start; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  .info-note { font-size: 13px; font-weight: 300; color: #6B6B74; background: #FAFAFA; border: 1px solid #E4E4E7; border-radius: 16px; padding: 16px 20px; margin-top: 4px; line-height: 1.65; }
+  .info-note b { color: #494950; font-weight: 600; }
+  .error-note { font-size: 13px; font-weight: 500; color: #B0402C; background: #FBEAE6; border: 1px solid #F0C6BC; border-radius: 16px; padding: 14px 18px; margin-top: 14px; line-height: 1.6; }
+
+  /* Summary boxes */
+  .summary-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; margin-bottom: 4px; align-items: stretch; }
+  .summary-box { background: #FAFAFA; border: 1px solid #E4E4E7; border-radius: 14px; padding: 14px 12px; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
+  .summary-box.hl { background: var(--brand-bg); border: 1px solid var(--brand); }
+  .summary-box.hl .sb-value { color: var(--brand-text); }
+  .summary-box.accent { background: #FBEAE6; border: 1px solid #B0402C; }
+  .summary-box.accent .sb-value { color: #B0402C; }
+  .summary-box.accent-orange { background: #FDEFDD; border: 1px solid #7A3E00; }
+  .summary-box.accent-orange .sb-value { color: #7A3E00; }
+  .summary-box.accent-rust { background: #FBE4EC; border: 1px solid #A3235C; }
+  .summary-box.accent-rust .sb-value { color: #A3235C; }
+  .summary-box.warn { background: #F1EDFE; border: 1px solid #D3C7F5; }
+  .summary-box.warn .sb-value { color: #5046E8; }
+  .summary-box .sb-label { font-size: 10.5px; color: #AFAFB6; font-weight: 300; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; line-height: 1.3; min-height: 2.6em; }
+  .summary-box .sb-value { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: #18181B; line-height: 1; }
+  .summary-box .sb-sub { font-size: 11px; font-weight: 300; color: #AFAFB6; margin-top: 8px; line-height: 1.4; }
+
+  /* Controls */
+  .controls-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .search-box { position: relative; flex: 1; min-width: 200px; }
+  .search-box.search-box-compact { flex: 1 1 200px; min-width: 200px; }
+  .search-box svg.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--brand); }
+  .search-box .clear-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%;
+    border: none; background: #E4E4E7; color: #6B6B74; display: none; align-items: center; justify-content: center; cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .search-box .clear-btn.visible { display: flex; }
+  .search-box .clear-btn:hover { background: var(--brand); color: #FFFFFF; }
+  .search-box input {
+    width: 100%; height: 34px; border: 1px solid transparent; border-radius: 1000px;
+    padding: 0 34px 0 38px; font-size: 12.5px; font-family: inherit; font-weight: 500; color: var(--brand); background: var(--brand-bg);
+    outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .search-box input::placeholder { color: #9B96D9; font-weight: 300; }
+  .search-box input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px var(--field-focus-ring); }
+  .select-pill {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    height: 34px; border-radius: 1000px; border: 1px solid transparent; background: var(--brand-bg);
+    padding: 0 14px; font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--brand); cursor: pointer; outline: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .select-pill:hover { border-color: var(--brand); }
+  .select-pill:focus { border-color: var(--brand); box-shadow: 0 0 0 2px var(--field-focus-ring); }
+  .toggle-chip {
+    height: 34px; padding: 0 14px; border-radius: 1000px; border: 1px solid var(--field-border); background: #FFF;
+    display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 12.5px; font-weight: 500; color: #6B6B74; cursor: pointer; user-select: none;
+    transition: all 0.15s ease;
+  }
+  .toggle-chip:hover { border-color: var(--brand); color: var(--brand); }
+  .toggle-chip.active { background: var(--brand-bg); border-color: transparent; color: var(--brand); }
+  .toggle-chip.active:hover { border-color: var(--brand); }
+
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 5px 11px; border-radius: 1000px; white-space: nowrap; }
+  .badge.b-green { background: #D7F8E3; color: #1B8A4A; }
+  .badge.b-purple { background: #F0EFFD; color: #10298E; }
+  .badge.b-orange { background: #FDEFDD; color: #7A3E00; }
+  .badge.b-red { background: #FBEAE6; color: #B0402C; }
+  .badge.b-rust { background: #FBE4EC; color: #A3235C; }
+  .badge.b-amber { background: #FFF4D6; color: #8A6D00; }
+  .badge.b-grey { background: #F2F2F3; color: #6B6B74; }
+
+  /* Flat table view */
+  .flat-table-wrap { overflow: auto; margin-top: 14px; border-radius: 14px; border: 1px solid #E4E4E7; max-height: calc(100vh - 40px); }
+  .flat-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+  .flat-table thead th { position: sticky; top: 0; z-index: 10; }
+  .flat-table th:first-child, .flat-table td.name-cell { position: sticky; left: 0; }
+  .flat-table th:first-child { z-index: 12; }
+  .flat-table td.name-cell { z-index: 5; background: #FFFFFF; }
+  .flat-table tbody tr.flat-row:hover td.name-cell, .flat-table tbody tr.flat-row.expanded td.name-cell { background: #FAFAFA; }
+  .flat-table th { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: #AFAFB6; text-align: left; padding: 10px 12px; border-bottom: 1px solid #E4E4E7; background: #FAFAFA; vertical-align: top; }
+  .flat-table td { padding: 10px 12px; border-bottom: 1px solid #F2F2F3; font-weight: 300; color: #494950; }
+  .flat-table tr:last-child td { border-bottom: none; }
+  .flat-table tbody tr.flat-row:hover td { background: #FAFAFA; }
+  .flat-table .num { text-align: left; font-variant-numeric: tabular-nums; }
+  .flat-table .name-cell { font-weight: 300; color: #494950; max-width: 150px; padding-top: 0; padding-bottom: 0; }
+  .name-cell-inner { display: flex; align-items: center; gap: 6px; height: 100%; padding: 10px 0; }
+  .name-cell-inner .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .exit-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: #AFAFB6; }
+  .flat-table th .th-main { display: block; line-height: 1.3; }
+  .flat-table th small { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 9.5px; color: #C5C5CA; margin-top: 3px; line-height: 1.3; min-height: 1.3em; text-align: left; }
+  .flat-table th.sortable-th { cursor: pointer; user-select: none; transition: color 0.12s ease; }
+  .flat-table th.sortable-th:hover { color: var(--brand); }
+  .flat-table th.sortable-th.active { color: var(--brand); }
+  .flat-table th.sortable-th.active small { color: var(--brand); opacity: 0.65; }
+  .sort-arrow { color: var(--brand); }
+  .flat-table tbody tr.flat-row { cursor: pointer; }
+  .flat-table tbody tr.flat-row.expanded td { background: #FAFAFA; }
+  .flat-detail-row td { background: #FAFAFA; padding: 10px 16px 14px; white-space: normal; }
+  .flat-detail { display: flex; flex-direction: column; gap: 5px; }
+  .period-line { font-size: 12.5px; font-weight: 300; color: #494950; }
+  .period-line b { color: var(--brand-text); font-weight: 500; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 56px 32px; border: 1.5px dashed #D7D6EE; border-radius: 24px; background: rgba(80,70,232,0.02); }
+  .empty-state-icon { width: 52px; height: 52px; border-radius: 14px; background: #F0EFFD; color: #5046E8; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .empty-state-title { font-size: 16px; font-weight: 700; color: #18181B; margin-bottom: 8px; }
+  .empty-state-text { font-size: 14px; font-weight: 300; color: #6B6B74; line-height: 1.6; max-width: 400px; }
+
+  details.explain { margin-top: 14px; }
+  details.explain summary {
+    cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #6B6B74;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    padding: 12px 0 10px; user-select: none; border-top: 1px solid #F2F2F3; outline: none;
+  }
+  details.explain summary::-webkit-details-marker { display: none; }
+  details.explain .chev { width: 16px; height: 16px; transition: transform 0.2s ease; flex-shrink: 0; color: #AFAFB6; }
+  details.explain[open] summary .chev { transform: rotate(180deg); }
+  .explain-body { padding-top: 4px; font-size: 13px; font-weight: 300; color: #494950; line-height: 1.7; }
+  .explain-body p { margin: 0 0 6px; }
+  .explain-body ul { margin: 10px 0 30px; padding-left: 20px; }
+  .explain-body li { margin-bottom: 16px; }
+  .explain-body ul:last-child, .explain-body li:last-child { margin-bottom: 0; }
+  .explain-body .badge { margin-right: 8px; vertical-align: middle; }
+  .explain-heading {
+    font-size: 13px; font-weight: 700; color: #18181B; text-transform: none; letter-spacing: 0;
+    margin: 40px 0 14px; padding-bottom: 10px; border-bottom: 1px solid #E4E4E7;
+  }
+  .explain-heading:first-child { margin-top: 0; }
+  .explain-note { font-size: 12px; font-style: italic; color: #AFAFB6; margin: 8px 0 30px; }
+
+  .export-btn {
+    height: 34px; padding: 0 14px; border-radius: 1000px; border: 1px solid transparent; background: var(--brand-bg); color: var(--brand);
+    display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
+  }
+  .export-btn:hover { border-color: var(--brand); }
+  .export-dropdown { position: relative; display: inline-block; }
+  .export-menu {
+    display: none; position: absolute; right: 0; top: 46px; background: #FFFFFF; border: 1px solid #E4E4E7; border-radius: 16px;
+    box-shadow: 8px 8px 24px 16px rgba(0,0,0,0.06); padding: 6px; min-width: 200px; z-index: 30;
+  }
+  .export-menu.open { display: block; }
+  .export-menu button {
+    width: 100%; text-align: left; background: none; border: none; padding: 10px 12px; border-radius: 10px;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: #494950; cursor: pointer;
+    display: flex; align-items: center; gap: 10px; transition: all 0.1s ease;
+  }
+  .export-menu button:hover { background: var(--brand-bg); color: var(--brand-text); }
+  .export-menu button svg { flex-shrink: 0; color: #AFAFB6; }
+  .export-menu button:hover svg { color: var(--brand); }
+
+  /* Consolidated column filter panel — master/detail layout */
+  .filter-count-badge {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px;
+    background: var(--brand-bg); color: var(--brand); border: 1px solid var(--brand); font-size: 10px; font-weight: 700; border-radius: 1000px;
+    padding: 0 4px; margin: 0 2px;
+  }
+  .filter-panel { left: 0; right: auto; width: 320px; max-height: 340px; padding: 0; overflow: hidden; }
+  .filter-panel.open { display: flex; flex-direction: column; }
+  .filter-panel-body { display: flex; flex: 1; min-height: 0; }
+  .filter-panel-footer {
+    border-top: 1px solid #F2F2F3; padding: 8px 12px; text-align: center; flex-shrink: 0;
+  }
+  .filter-clear-all {
+    background: none; border: none; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--brand);
+    cursor: pointer; padding: 4px 8px;
+  }
+  .filter-clear-all:hover { text-decoration: underline; }
+  .filter-clear-all:disabled { color: #C5C5CA; cursor: default; text-decoration: none; }
+  .filter-col-list { width: 130px; flex-shrink: 0; border-right: 1px solid #F2F2F3; padding: 6px; overflow-y: auto; }
+  .filter-panel .filter-col-item {
+    width: 100%; text-align: left; align-items: flex-start; justify-content: flex-start; background: none; border: none; outline: none; padding: 8px 9px; border-radius: 8px;
+    font-family: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 1px; transition: all 0.1s ease;
+  }
+  .filter-panel .filter-col-item .fc-label { font-size: 12px; font-weight: 600; color: #494950; text-align: left; width: 100%; }
+  .filter-panel .filter-col-item .fc-value { font-size: 10px; font-weight: 400; color: #AFAFB6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; width: 100%; }
+  .filter-panel .filter-col-item:hover { background: var(--brand-bg); }
+  .filter-panel .filter-col-item:hover .fc-label { color: var(--brand-text); }
+  .filter-panel .filter-col-item.active { background: var(--brand-bg); }
+  .filter-panel .filter-col-item.active .fc-label { color: var(--brand-text); }
+  .filter-panel .filter-col-item.active .fc-value { color: var(--brand); }
+  .filter-opts-panel { flex: 1; padding: 6px; overflow-y: auto; }
+  .filter-panel .filter-opt-btn {
+    width: 100%; text-align: left; justify-content: flex-start; background: none; border: none; outline: none; padding: 7px 10px; border-radius: 8px;
+    font-family: inherit; font-size: 11px; font-weight: 400; color: #6B6B74; cursor: pointer; transition: all 0.1s ease;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .filter-panel .filter-opt-btn:hover { background: #FAFAFA; color: var(--brand-text); }
+  .filter-panel .filter-opt-btn.selected { color: var(--brand); font-weight: 600; }
+  .filter-opts-search { position: relative; margin: 2px 0 6px; }
+  .filter-opts-search svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #AFAFB6; pointer-events: none; }
+  .filter-opts-search input {
+    width: 100%; height: 28px; border: 1px solid #E4E4E7; border-radius: 8px; padding: 0 8px 0 26px;
+    font-family: inherit; font-size: 11px; font-weight: 400; color: #494950; outline: none; background: #FFFFFF;
+  }
+  .filter-opts-search input:focus { border-color: var(--brand); }
+  .filter-opt-empty { padding: 8px 10px; font-size: 11px; font-weight: 400; color: #AFAFB6; }
+  .filter-opt-check {
+    width: 14px; height: 14px; flex-shrink: 0; border-radius: 4px; border: 1.5px solid #D7D6DE;
+    display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 9px; transition: all 0.1s ease;
+  }
+  .filter-panel .filter-opt-btn.selected .filter-opt-check { background: var(--brand); border-color: var(--brand); }
+
+  @media (max-width: 900px) {
+    .summary-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .card { border-radius: 16px; padding: 18px; }
+    h1 { font-size: 24px; }
+    .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="wrap">
+
+  <header>
+    <div class="brand"><svg role="img" aria-label="Wemolo" viewBox="0 0 151.997 24.000" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path d="M 13.472 0.014 C 16.338 -0.194 17.512 2.055 18.291 3.265 C 20.124 6.107 21.68 3.516 22.998 1.846 C 24.379 0.319 27.011 0.142 28.677 2.61 C 29.902 4.782 28.538 8.871 27.846 11.521 C 26.965 14.892 26.58 16.723 25.394 20.134 C 25.193 20.711 24.412 23.587 21.859 23.868 C 19.199 24.164 17.942 20.31 15.382 20.355 C 12.564 20.406 11.925 23.799 9.588 23.984 C 6.075 24.262 4.904 20.944 3.511 17.615 C 2.791 15.899 2.246 14.525 1.788 13.268 C 0.177 8.845 -1.74 1.352 2.964 1.18 C 6.161 1.064 7.058 4.059 8.293 4.075 C 10.823 4.107 10.23 0.249 13.472 0.014 Z M 111.348 1.121 C 113.416 -1.132 117.624 0.225 117.853 3.354 C 118.058 6.185 118.262 10.414 118.434 12.426 C 118.634 14.779 120.14 15.223 120.78 15.413 C 121.623 15.663 123.324 15.928 124.049 16.22 C 127.515 17.308 127.109 23.365 123.591 23.736 C 121.727 23.934 119.789 23.998 117.1 23.998 C 114.722 23.998 111.013 23.051 110.769 18.639 C 110.465 13.138 110.319 8.877 110.494 3.938 C 110.54 2.656 110.613 1.921 111.348 1.121 Z M 58.403 0.064 C 63.988 -0.694 64.448 5.478 67.322 5.478 C 71.354 5.479 71.616 1.492 76.092 1.24 C 77.471 1.162 79.21 2.961 79.487 5.917 C 79.83 9.578 80.047 19.545 79.499 21.563 C 78.708 24.47 75.181 24.178 73.78 22.053 C 72.872 20.674 73.197 19.615 72.041 19.515 C 70.487 19.379 70.623 21.818 67.604 21.57 C 65.036 21.359 65.713 18.553 63.769 18.561 C 62.428 18.567 62.332 20.728 61.535 22.265 C 59.831 25.554 54.815 24.009 54.855 18.96 L 54.855 18.958 C 54.975 14.094 54.878 9.156 55.045 3.942 C 55.112 1.851 56.287 0.264 58.403 0.064 Z M 85.21 6.022 C 86.572 1.526 93.082 -1.538 99.313 0.833 C 102.223 1.941 105.29 5.414 105.552 11.856 C 105.638 13.983 104.96 26.074 92.889 23.678 L 92.887 23.68 C 87.17 22.543 83.236 11.335 85.21 6.022 Z M 34.064 6.013 C 34.207 0.726 37.935 -0.141 42.262 0.087 C 44.634 0.211 47.306 -0.113 48.981 1.877 C 51.305 4.531 49.289 6.958 46.389 6.979 C 46.046 6.981 44.41 7.252 44.364 8.126 C 44.326 8.876 45.248 9.345 45.443 9.415 C 47.635 10.205 47.754 10.89 47.756 12.002 C 47.756 13.327 46.502 13.719 45.679 14.407 C 45.254 14.762 44.976 15.964 45.761 16.796 C 46.301 17.369 47.735 17.476 48.396 18.185 C 50.616 20.562 48.785 23.392 44.834 23.672 C 42.177 23.861 40.73 23.995 38.103 23.929 C 34.437 23.733 34.257 18.776 34.191 15.857 L 34.19 15.854 L 34.189 15.853 C 34.103 11.676 33.966 9.686 34.064 6.013 Z M 131.363 12.929 C 130.044 -5.56 153.809 -3.291 151.886 15.298 C 151.897 18.214 149.927 23.493 142.407 23.832 C 133.31 24.243 131.45 14.895 131.363 12.929 Z"/>
+    </svg></div>
+    <h1>BEM Sickness Report</h1>
+    <div class="subtitle">Uses the Personio BEM-Report to identify connected sickness periods per employee and shows whether it’s more of an extended leave or many separate days — as a basis for the BEM assessment (Section 167(2) of the German Social Code IX / SGB IX).</div>
+  </header>
+
+  <!-- Upload card -->
+  <div class="card" id="uploadCard">
+    <div class="card-label">Upload BEM-Report</div>
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="drop-zone-title">Drag an Excel file here or click to browse</div>
+      <div class="drop-zone-text">BEM-Report export from Personio (.xlsx).</div>
+      <div class="drop-zone-steps">
+        <div class="steps-label">Don't have the file yet?</div>
+        <div class="step-line"><span class="step-num">1</span><span class="step-text">Open the <b>BEM-Report</b> in Personio, under <b>Analytics</b>.</span></div>
+        <div class="step-line"><span class="step-num">2</span><span class="step-text">Select the reporting period you want to analyze.</span></div>
+        <div class="step-line"><span class="step-num">3</span><span class="step-text">Export the report.</span></div>
+        <div class="step-line"><span class="step-num">4</span><span class="step-text">Drag and drop the exported file, or click to browse.</span></div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+      <div id="fileNamePill"></div>
+    </div>
+    <div id="errorArea"></div>
+    <div class="info-note" style="margin-top:16px">
+      <b>Privacy:</b> The file is processed exclusively in your local browser. No sickness data is uploaded or transmitted anywhere.
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsArea" style="display:none"></div>
+
+</div>
+</div>
+
+<script>
+/* ---------- Date helpers (all in UTC to avoid DST/timezone drift) ---------- */
+function toUtcDate(d) {
+  if (!(d instanceof Date) || isNaN(d)) return null;
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+function addDays(d, n) { return new Date(d.getTime() + n * 86400000); }
+function dayDiff(a, b) { return Math.round((b.getTime() - a.getTime()) / 86400000); }
+function fmtDate(d) {
+  return d.getUTCDate().toString().padStart(2,'0') + '.' + (d.getUTCMonth()+1).toString().padStart(2,'0') + '.' + d.getUTCFullYear();
+}
+function dateKey(d) { return d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)+'-'+d.getUTCDate(); }
+
+/* ---------- German nationwide public holidays ---------- */
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year/100), c = year % 100;
+  const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15)%30;
+  const i = Math.floor(c/4), k = c%4, l = (32+2*e+2*i-h-k)%7;
+  const m = Math.floor((a+11*h+22*l)/451);
+  const month = Math.floor((h+l-7*m+114)/31);
+  const day = ((h+l-7*m+114)%31)+1;
+  return new Date(Date.UTC(year, month-1, day));
+}
+function holidaysForYear(year) {
+  const e = easterSunday(year);
+  const set = new Set();
+  [ new Date(Date.UTC(year,0,1)),        // New Year's Day
+    addDays(e,-2),                        // Good Friday
+    addDays(e,1),                         // Easter Monday
+    new Date(Date.UTC(year,4,1)),         // Labour Day
+    addDays(e,39),                        // Ascension Day
+    addDays(e,50),                        // Whit Monday
+    new Date(Date.UTC(year,9,3)),         // German Unity Day
+    new Date(Date.UTC(year,11,25)),       // Christmas Day
+    new Date(Date.UTC(year,11,26))        // Boxing Day
+  ].forEach(d => set.add(dateKey(d)));
+  return set;
+}
+let HOLIDAYS = new Set();
+function buildHolidays(fromYear, toYear) {
+  HOLIDAYS = new Set();
+  for (let y = fromYear - 1; y <= toYear + 1; y++) {
+    holidaysForYear(y).forEach(k => HOLIDAYS.add(k));
+  }
+}
+function isWorkday(d) {
+  const wd = d.getUTCDay();
+  if (wd === 0 || wd === 6) return false;
+  if (HOLIDAYS.has(dateKey(d))) return false;
+  return true;
+}
+
+/* ---------- Parsing the BEM / Personio export ---------- */
+function findHeaderRow(rows) {
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const row = rows[i] || [];
+    const joined = row.map(c => (c==null?'':String(c))).join('|').toLowerCase();
+    if (joined.includes('startdatum') || joined.includes('start date')) return i;
+  }
+  return 0;
+}
+function colIndex(headerRow, needles) {
+  for (let i = 0; i < headerRow.length; i++) {
+    const v = (headerRow[i] == null ? '' : String(headerRow[i])).toLowerCase();
+    if (needles.some(n => v.includes(n))) return i;
+  }
+  return -1;
+}
+
+function parseWorkbook(workbook) {
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null, blankrows: false });
+  if (!rows.length) throw new Error('The file contains no data.');
+
+  const headerIdx = findHeaderRow(rows);
+  const header = rows[headerIdx];
+
+  const colVorname = colIndex(header, ['vorname', 'first name']);
+  const colNachname = colIndex(header, ['nachname', 'last name']);
+  const colId = colIndex(header, ['benutzerdefinierte id', 'employee id', 'personal number', 'personalnummer']);
+  const colArt = colIndex(header, ['abwesenheitsart', 'absence type']);
+  const colStart = colIndex(header, ['startdatum', 'start date']);
+  const colEnd = colIndex(header, ['enddatum', 'end date']);
+  const colDays = colIndex(header, ['abwesenheitsdauer (tage)', 'dauer (tage)', 'absence duration (days)', 'duration (days)']);
+  const colExit = colIndex(header, ['austrittsdatum', 'exit date', 'termination date', 'leaving date']);
+  const colDept = colIndex(header, ['abteilung', 'department']);
+  const colTeam = colIndex(header, ['team']);
+
+  if (colVorname === -1 || colNachname === -1 || colStart === -1 || colEnd === -1 || colDays === -1) {
+    throw new Error('Expected columns were not found (first name, last name, start date, end date, absence duration (days)). Please check whether this is the BEM-Report.');
+  }
+
+  const entries = [];
+  const exitDates = new Map();
+  const departments = new Map();
+  const teams = new Map();
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+    const vor = r[colVorname], nach = r[colNachname];
+    if (!vor && !nach) continue;
+
+    const id = colId !== -1 && r[colId] ? String(r[colId]) : null;
+    const key = id || ((vor||'') + '|' + (nach||''));
+
+    if (colExit !== -1 && r[colExit] != null && r[colExit] !== '') {
+      const exitDate = toUtcDate(excelValueToDate(r[colExit]));
+      if (exitDate) exitDates.set(key, exitDate);
+    }
+    if (colDept !== -1 && r[colDept] != null && r[colDept] !== '' && !departments.has(key)) {
+      departments.set(key, String(r[colDept]));
+    }
+    if (colTeam !== -1 && r[colTeam] != null && r[colTeam] !== '' && !teams.has(key)) {
+      teams.set(key, String(r[colTeam]));
+    }
+
+    const startRaw = r[colStart], endRaw = r[colEnd], daysRaw = r[colDays];
+    if (startRaw == null || endRaw == null) continue; // header row for the employee, no absence
+    const days = typeof daysRaw === 'number' ? daysRaw : parseFloat(daysRaw);
+    if (!days || days <= 0) continue; // "all days except 0"
+
+    const start = toUtcDate(excelValueToDate(startRaw));
+    const end = toUtcDate(excelValueToDate(endRaw));
+    if (!start || !end) continue;
+
+    entries.push({
+      key, vorname: vor || '', nachname: nach || '',
+      art: colArt !== -1 ? (r[colArt] || '') : '',
+      start, end: (end < start ? start : end), days
+    });
+  }
+  return { entries, exitDates, departments, teams };
+}
+function excelValueToDate(v) {
+  if (v instanceof Date) return v;
+  if (typeof v === 'number') {
+    // Excel serial date fallback
+    const utcDays = Math.floor(v - 25569);
+    return new Date(utcDays * 86400 * 1000);
+  }
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+
+/* ---------- Recommendation stages (manager conversation / certificate from day 1 / BEM) ---------- */
+function closenessStatus(value, threshold, margin) {
+  if (value >= threshold) return 'ja';
+  if (value >= threshold - margin) return 'knapp';
+  return 'nein';
+}
+function combineStatus(a, b) {
+  if (a === 'ja' || b === 'ja') return 'ja';
+  if (a === 'knapp' || b === 'knapp') return 'knapp';
+  return 'nein';
+}
+/* ---------- Grouping and merging into periods (all data from the report, no date-range filtering) ---------- */
+function buildReport(entries, exitDates, departments, teams) {
+  exitDates = exitDates || new Map();
+  departments = departments || new Map();
+  teams = teams || new Map();
+  const filtered = entries;
+  let minDate = null, maxDate = null;
+  filtered.forEach(e => {
+    if (!minDate || e.start < minDate) minDate = e.start;
+    if (!maxDate || e.end > maxDate) maxDate = e.end;
+  });
+  const holidayFromYear = minDate ? minDate.getUTCFullYear() : new Date().getUTCFullYear();
+  const holidayToYear = maxDate ? maxDate.getUTCFullYear() : new Date().getUTCFullYear();
+  buildHolidays(holidayFromYear, holidayToYear);
+
+  const groups = new Map();
+  filtered.forEach(e => {
+    if (!groups.has(e.key)) groups.set(e.key, { vorname: e.vorname, nachname: e.nachname, entries: [] });
+    groups.get(e.key).entries.push(e);
+  });
+
+  const employees = [];
+  groups.forEach((g, key) => {
+    g.entries.sort((a,b) => a.start - b.start);
+    const periods = [];
+    let cur = null;
+    g.entries.forEach(e => {
+      if (!cur) { cur = { start: e.start, end: e.end, days: e.days, n: 1 }; return; }
+      if (e.start <= addDays(cur.end, 1)) {
+        cur.end = e.end > cur.end ? e.end : cur.end;
+        cur.days += e.days; cur.n += 1;
+        return;
+      }
+      let d = addDays(cur.end, 1);
+      let onlyNonWork = true;
+      while (d < e.start) {
+        if (isWorkday(d)) { onlyNonWork = false; break; }
+        d = addDays(d, 1);
+      }
+      if (onlyNonWork) {
+        cur.end = e.end > cur.end ? e.end : cur.end;
+        cur.days += e.days; cur.n += 1;
+      } else {
+        periods.push(cur);
+        cur = { start: e.start, end: e.end, days: e.days, n: 1 };
+      }
+    });
+    if (cur) periods.push(cur);
+
+    periods.forEach(p => {
+      p.calendarDays = dayDiff(p.start, p.end) + 1;
+      if (p.calendarDays <= 1) p.type = 'Single day';
+      else if (p.calendarDays <= 3) p.type = 'Short';
+      else if (p.calendarDays <= 10) p.type = 'Multi-day';
+      else p.type = 'Extended leave';
+    });
+
+    const totalDays = periods.reduce((s,p) => s + p.days, 0);
+    const totalCalendarDays = periods.reduce((s,p) => s + p.calendarDays, 0);
+    const longPeriod = periods.some(p => p.calendarDays > 10);
+    const manyShort = periods.filter(p => p.calendarDays <= 3).length >= 3;
+    let pattern;
+    if (longPeriod) pattern = 'Extended leave';
+    else if (manyShort) pattern = 'Frequent short absences';
+    else if (periods.length >= 2) pattern = 'Multiple absences';
+    else pattern = 'Single absence';
+
+    const episodes = periods.length;
+    const stage1 = combineStatus(
+      closenessStatus(episodes, 5, 1),
+      closenessStatus(totalCalendarDays, 20, 8)
+    );
+    const stage2 = closenessStatus(episodes, 8, 1);
+    const stage3 = closenessStatus(totalCalendarDays, 43, 8);
+
+    let recommendation, recommendationClass;
+    if (stage3 === 'ja') { recommendation = 'BEM invitation'; recommendationClass = 'b-red'; }
+    else if (stage2 === 'ja') { recommendation = 'Certificate from day 1'; recommendationClass = 'b-rust'; }
+    else if (stage1 === 'ja') { recommendation = 'Manager conversation'; recommendationClass = 'b-orange'; }
+    else if (stage1 === 'knapp' || stage2 === 'knapp' || stage3 === 'knapp') { recommendation = 'Monitor'; recommendationClass = 'b-amber'; }
+    else { recommendation = 'No action needed'; recommendationClass = 'b-green'; }
+
+    const exitDate = exitDates.get(key) || null;
+    const department = departments.get(key) || '';
+    const team = teams.get(key) || '';
+
+    employees.push({
+      name: (g.vorname + ' ' + g.nachname).trim(),
+      department, team,
+      periods: periods.sort((a,b) => b.start - a.start),
+      totalDays, totalCalendarDays, totalPeriods: episodes, pattern,
+      stage1, stage2, stage3, recommendation, recommendationClass,
+      exitDate, hasExited: !!exitDate
+    });
+  });
+
+  employees.sort((a,b) => b.totalDays - a.totalDays);
+  return { employees, minDate, maxDate };
+}
+
+/* ---------- Rendering ---------- */
+let REPORT = null;
+let RAW_ENTRIES = null, RAW_EXIT_DATES = null, RAW_DEPARTMENTS = null, RAW_TEAMS = null, RAW_MAX_END = null;
+let analysisWindowStart = null, analysisWindowEnd = null;
+let calendarOpenFor = null; // 'start' | 'end' | null
+let calendarViewDate = null;
+let calendarViewMode = 'days'; // 'days' | 'months'
+const CAL_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAL_MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CAL_WEEKDAYS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+function getMaxAllowedDate() { return toUtcDate(new Date()); }
+
+function openCalendar(which) {
+  calendarOpenFor = which;
+  const current = which === 'start' ? analysisWindowStart : analysisWindowEnd;
+  calendarViewDate = current || getMaxAllowedDate();
+  calendarViewMode = 'days';
+  renderResults();
+}
+function calendarChangeMonth(delta) {
+  const y = calendarViewDate.getUTCFullYear(), m = calendarViewDate.getUTCMonth();
+  let next = new Date(Date.UTC(y, m + delta, 1));
+  const maxD = getMaxAllowedDate();
+  const maxMonthStart = new Date(Date.UTC(maxD.getUTCFullYear(), maxD.getUTCMonth(), 1));
+  if (next > maxMonthStart) next = maxMonthStart;
+  calendarViewDate = next;
+  renderResults();
+}
+function calendarOpenMonthPicker() {
+  calendarViewMode = 'months';
+  renderResults();
+}
+function calendarSelectYear(year) {
+  const maxD = getMaxAllowedDate();
+  let month = calendarViewDate.getUTCMonth();
+  if (year === maxD.getUTCFullYear() && month > maxD.getUTCMonth()) month = maxD.getUTCMonth();
+  calendarViewDate = new Date(Date.UTC(year, month, 1));
+  renderResults();
+}
+function calendarSelectMonth(monthIndex) {
+  const maxD = getMaxAllowedDate();
+  let year = calendarViewDate.getUTCFullYear();
+  if (year === maxD.getUTCFullYear() && monthIndex > maxD.getUTCMonth()) monthIndex = maxD.getUTCMonth();
+  calendarViewDate = new Date(Date.UTC(year, monthIndex, 1));
+  calendarViewMode = 'days';
+  renderResults();
+}
+function selectCalendarDay(y, m, d) {
+  const picked = new Date(Date.UTC(y, m, d));
+  const maxD = getMaxAllowedDate();
+  if (picked > maxD) return;
+  if (calendarOpenFor === 'start') analysisWindowStart = picked;
+  else if (calendarOpenFor === 'end') analysisWindowEnd = picked;
+  calendarOpenFor = null;
+  if (analysisWindowStart && analysisWindowEnd) rebuildReportFromWindow();
+  renderResults();
+}
+function clearCalendarDate() {
+  if (calendarOpenFor === 'start') analysisWindowStart = null;
+  else if (calendarOpenFor === 'end') analysisWindowEnd = null;
+  REPORT = null;
+  calendarOpenFor = null;
+  renderResults();
+}
+function renderCalendarMonthsGrid() {
+  const maxD = getMaxAllowedDate();
+  const maxYear = maxD.getUTCFullYear();
+  const year = calendarViewDate.getUTCFullYear();
+  const yearsStart = maxYear - 5; // fixed range: 6 years total, no paging needed
+
+  let yearCells = '';
+  for (let y = yearsStart; y <= maxYear; y++) {
+    const isSelected = y === year;
+    const cls = 'cal-month-cell' + (isSelected ? ' cal-month-selected' : '');
+    yearCells += '<button type="button" class="'+cls+'" onclick="calendarSelectYear('+y+')">'+y+'</button>';
+  }
+
+  const isCurrentYear = year === maxYear;
+  const selectedMonth = calendarViewDate.getUTCMonth();
+  let monthCells = '';
+  for (let m = 0; m < 12; m++) {
+    const isFuture = isCurrentYear && m > maxD.getUTCMonth();
+    const isSelected = m === selectedMonth;
+    const cls = 'cal-month-cell' + (isSelected ? ' cal-month-selected' : '') + (isFuture ? ' cal-month-disabled' : '');
+    monthCells += isFuture
+      ? '<span class="'+cls+'">'+CAL_MONTH_SHORT[m]+'</span>'
+      : '<button type="button" class="'+cls+'" onclick="calendarSelectMonth('+m+')">'+CAL_MONTH_SHORT[m]+'</button>';
+  }
+
+  return '<div class="cal-popover" onclick="event.stopPropagation()">'
+    + '<div class="cal-months-grid cal-years-grid">' + yearCells + '</div>'
+    + '<div class="cal-months-grid">' + monthCells + '</div>'
+    + '</div>';
+}
+function renderCalendarPopover(which) {
+  if (calendarViewMode === 'months') return renderCalendarMonthsGrid();
+  const maxD = getMaxAllowedDate();
+  const view = calendarViewDate;
+  const year = view.getUTCFullYear(), month = view.getUTCMonth();
+  let startWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  startWeekday = (startWeekday + 6) % 7; // Monday-first
+  const daysInMonthCount = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const selected = which === 'start' ? analysisWindowStart : analysisWindowEnd;
+  const isCurrentMonthView = (year === maxD.getUTCFullYear() && month === maxD.getUTCMonth());
+
+  let cells = '';
+  for (let i = 0; i < startWeekday; i++) cells += '<span class="cal-day cal-day-empty"></span>';
+  for (let d = 1; d <= daysInMonthCount; d++) {
+    const cellDate = new Date(Date.UTC(year, month, d));
+    const isFuture = cellDate > maxD;
+    const isSelected = selected && cellDate.getTime() === selected.getTime();
+    const isToday = cellDate.getTime() === maxD.getTime();
+    const cls = 'cal-day' + (isSelected ? ' cal-day-selected' : '') + (isToday && !isSelected ? ' cal-day-today' : '') + (isFuture ? ' cal-day-disabled' : '');
+    cells += isFuture
+      ? '<span class="'+cls+'">'+d+'</span>'
+      : '<button type="button" class="'+cls+'" onclick="selectCalendarDay('+year+','+month+','+d+')">'+d+'</button>';
+  }
+  return '<div class="cal-popover" onclick="event.stopPropagation()">'
+    + '<div class="cal-header">'
+    + '<button type="button" class="cal-nav" onclick="calendarChangeMonth(-1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>'
+    + '<button type="button" class="cal-month-label cal-month-label-btn" onclick="calendarOpenMonthPicker()">'+CAL_MONTH_NAMES[month]+' '+year+'</button>'
+    + '<button type="button" class="cal-nav'+(isCurrentMonthView ? ' cal-nav-disabled' : '')+'"'+(isCurrentMonthView ? ' disabled' : ' onclick="calendarChangeMonth(1)"')+'><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button>'
+    + '</div>'
+    + '<div class="cal-weekdays">' + CAL_WEEKDAYS.map(w => '<span>'+w+'</span>').join('') + '</div>'
+    + '<div class="cal-grid">' + cells + '</div>'
+    + '<div class="cal-footer"><button type="button" class="cal-clear" onclick="clearCalendarDate()">Clear</button></div>'
+    + '</div>';
+}
+function renderDateTrigger(which) {
+  const value = which === 'start' ? analysisWindowStart : analysisWindowEnd;
+  const isOpen = calendarOpenFor === which;
+  return '<span class="window-date-wrap">'
+    + '<button type="button" class="window-date-trigger'+(isOpen?' active':'')+'" onclick="event.stopPropagation(); openCalendar(\''+which+'\')">'+(value ? fmtDate(value) : 'Select date')+'</button>'
+    + (isOpen ? renderCalendarPopover(which) : '')
+    + '</span>';
+}
+let currentSort = 'days_desc';
+let currentSearch = '';
+let includeExited = true;
+let currentDeptFilter = [];
+let currentTeamFilter = [];
+let currentRecommendationFilter = [];
+let currentPatternFilter = [];
+let filterPanelOpen = false;
+
+function makeToggle(getArr, setArr) {
+  return v => {
+    const arr = getArr();
+    if (v === '') { setArr([]); return; }
+    const i = arr.indexOf(v);
+    if (i === -1) setArr(arr.concat([v]));
+    else setArr(arr.slice(0, i).concat(arr.slice(i + 1)));
+  };
+}
+
+const FILTER_COLUMNS = [
+  { key: 'department', label: 'Department', field: 'department', get: () => currentDeptFilter, toggle: makeToggle(() => currentDeptFilter, v => currentDeptFilter = v) },
+  { key: 'team', label: 'Team', field: 'team', get: () => currentTeamFilter, toggle: makeToggle(() => currentTeamFilter, v => currentTeamFilter = v) },
+  { key: 'pattern', label: 'Absence type', field: 'pattern', get: () => currentPatternFilter, toggle: makeToggle(() => currentPatternFilter, v => currentPatternFilter = v) },
+  { key: 'recommendation', label: 'Recommendation', field: 'recommendation', get: () => currentRecommendationFilter, toggle: makeToggle(() => currentRecommendationFilter, v => currentRecommendationFilter = v) }
+];
+
+function getUniqueFieldValues(field) {
+  const set = new Set();
+  REPORT.employees.forEach(e => { const v = e[field]; if (v !== undefined && v !== null && v !== '') set.add(v); });
+  const arr = Array.from(set);
+  if (arr.every(v => typeof v === 'number')) return arr.sort((a,b) => a - b).map(String);
+  return arr.map(String).sort((a,b) => a.localeCompare(b, 'de'));
+}
+
+function activeFilterCount() {
+  return FILTER_COLUMNS.filter(c => c.get().length > 0).length;
+}
+
+let filterActiveColumn = null; // which column's options show in the detail pane
+let filterOptsSearch = '';
+
+function renderFilterOptsList() {
+  const activeCol = FILTER_COLUMNS.find(c => c.key === filterActiveColumn);
+  if (!activeCol) return '';
+  let values = getUniqueFieldValues(activeCol.field);
+  const q = filterOptsSearch.trim().toLowerCase();
+  if (q) values = values.filter(v => v.toLowerCase().includes(q));
+  const current = activeCol.get();
+  let html = '';
+  if (!q) {
+    html += '<button type="button" class="filter-opt-btn'+(current.length===0 ? ' selected' : '')+'" data-value=""><span class="filter-opt-check">'+(current.length===0?'\u2713':'')+'</span>All '+activeCol.label.toLowerCase()+'s</button>';
+  }
+  if (!values.length) {
+    html += '<div class="filter-opt-empty">No matches</div>';
+  } else {
+    html += values.map(v => '<button type="button" class="filter-opt-btn'+(current.includes(v) ? ' selected' : '')+'" data-value="'+escapeHtml(v)+'"><span class="filter-opt-check">'+(current.includes(v)?'\u2713':'')+'</span>'+escapeHtml(v)+'</button>').join('');
+  }
+  return html;
+}
+
+function renderFilterPanelDropdown() {
+  const available = FILTER_COLUMNS.filter(c => getUniqueFieldValues(c.field).length);
+  if (!filterActiveColumn && available.length) filterActiveColumn = available[0].key;
+
+  const listHtml = available.map(c => {
+    const current = c.get();
+    const valueLabel = current.length === 0 ? 'All' : (current.length === 1 ? current[0] : current.length + ' selected');
+    return '<button type="button" class="filter-col-item'+(filterActiveColumn===c.key ? ' active' : '')+'" data-col="'+c.key+'">'
+      + '<span class="fc-label">'+c.label+'</span>'
+      + '<span class="fc-value">'+escapeHtml(valueLabel)+'</span>'
+      + '</button>';
+  }).join('');
+
+  const activeCol = available.find(c => c.key === filterActiveColumn);
+  let optsHtml = '';
+  if (activeCol) {
+    const showSearch = getUniqueFieldValues(activeCol.field).length > 6;
+    if (showSearch) {
+      optsHtml += '<div class="filter-opts-search"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="filterOptsSearchInput" placeholder="Search '+escapeHtml(activeCol.label.toLowerCase())+'…" value="'+escapeHtml(filterOptsSearch)+'"></div>';
+    }
+    optsHtml += '<div id="filterOptsList">' + renderFilterOptsList() + '</div>';
+  }
+
+  const count = activeFilterCount();
+  return '<div class="export-dropdown">'
+    + '<button type="button" class="select-pill uniform-ctrl-btn" id="filterTrigger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filter'+(count ? ' <span class="filter-count-badge">'+count+'</span>' : '')+' <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>'
+    + '<div class="export-menu filter-panel" id="filterPanel">'
+    + '<div class="filter-panel-body">'
+    + '<div class="filter-col-list">'+listHtml+'</div>'
+    + '<div class="filter-opts-panel" id="filterOptsPanel">'+optsHtml+'</div>'
+    + '</div>'
+    + '<div class="filter-panel-footer"><button type="button" class="filter-clear-all" id="filterClearAll"'+(count ? '' : ' disabled')+'>Clear all filters'+(count ? ' ('+count+')' : '')+'</button></div>'
+    + '</div></div>';
+}
+
+// Column -> available sort keys (in click-toggle order). Used to make table
+// headers themselves clickable/sortable instead of a separate dropdown.
+const COLUMN_SORT_MAP = {
+  name: ['name_asc'],
+  department: ['department_asc'],
+  team: ['team_asc'],
+  pattern: ['pattern_desc'],
+  recommendation: ['recommendation_desc'],
+  episodes: ['periods_desc'],
+  sickdays: ['days_desc', 'days_asc'],
+  caldays: ['caldays_desc']
+};
+function sortByColumn(col) {
+  const opts = COLUMN_SORT_MAP[col];
+  if (!opts) return;
+  const idx = opts.indexOf(currentSort);
+  currentSort = opts[(idx + 1) % opts.length];
+  renderResults();
+}
+function columnSortArrow(col) {
+  const opts = COLUMN_SORT_MAP[col];
+  if (!opts || opts.indexOf(currentSort) === -1) return '';
+  return currentSort.endsWith('_asc') ? ' ↑' : ' ↓';
+}
+function columnSortActive(col) {
+  const opts = COLUMN_SORT_MAP[col];
+  return !!(opts && opts.indexOf(currentSort) !== -1);
+}
+
+function patternBadgeClass(p) {
+  return 'b-grey';
+}
+
+function renderPeriodPillCompact() {
+  return '<div class="analyzed-period-pill period-pill-blue"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+    + 'Analysis window: '
+    + renderDateTrigger('start')
+    + ' \u2013 '
+    + renderDateTrigger('end')
+    + '</div>';
+}
+
+function renderDownloadDropdown(cls) {
+  return '<div class="export-dropdown">'
+        + '<button class="export-btn'+(cls?' '+cls:'')+'" id="exportBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>'
+        + '<div class="export-menu" id="exportMenu">'
+        + '<button type="button" data-format="csv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>CSV</button>'
+        + '<button type="button" data-format="xlsx"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Excel (.xlsx)</button>'
+        + '<button type="button" data-format="pdf-table"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF</button>'
+        + '</div></div>';
+}
+
+function renderControlsRow() {
+  const searchHtml = '<div class="search-box search-box-compact"><svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="searchInput" placeholder="Search name…" value="'+escapeHtml(currentSearch)+'"><button type="button" class="clear-btn'+(currentSearch?' visible':'')+'" id="searchClearBtn" aria-label="Clear search"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
+  const includeLeaversHtml = '<div class="toggle-chip uniform-ctrl-btn'+(includeExited?' active':'')+'" id="exitedToggle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Include leavers</div>';
+  const filterHtml = renderFilterPanelDropdown();
+  const downloadHtml = renderDownloadDropdown('uniform-ctrl-btn');
+  const resetHtml = '<button type="button" class="reset-btn uniform-ctrl-btn" onclick="resetAll()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Load new file</button>';
+
+  let html = '';
+  html += '<div class="controls-row">'
+    + searchHtml + renderPeriodPillCompact() + includeLeaversHtml + filterHtml + downloadHtml + resetHtml
+    + '</div>';
+  return html;
+}
+
+function renderResults() {
+  if (!analysisWindowStart || !analysisWindowEnd || !REPORT) {
+    let html = '<div class="card">';
+    html += '<div class="period-select-box">'
+      + '<div class="period-select-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
+      + '<div class="period-select-title">Select your analysis period</div>'
+      + '<div class="period-select-text">Enter a start and end date to analyze the report.</div>'
+      + '<div class="period-select-fields">' + renderDateTrigger('start') + ' \u2013 ' + renderDateTrigger('end') + '</div>'
+      + '</div>';
+    html += '</div>';
+    document.getElementById('resultsArea').innerHTML = html;
+    document.getElementById('resultsArea').style.display = 'block';
+    return;
+  }
+
+  const employees = includeExited ? REPORT.employees : REPORT.employees.filter(e => !e.hasExited);
+  const totalEmployeesWithAbsence = employees.length;
+  const totalDaysAll = employees.reduce((s,e) => s + e.totalDays, 0);
+  const totalPeriodsAll = employees.reduce((s,e) => s + e.totalPeriods, 0);
+  const avgDays = totalEmployeesWithAbsence ? (totalDaysAll/totalEmployeesWithAbsence).toFixed(1) : '0';
+  const stage1Count = employees.filter(e => e.stage1 === 'ja').length;
+  const stage2Count = employees.filter(e => e.stage2 === 'ja').length;
+  const stage3Count = employees.filter(e => e.stage3 === 'ja').length;
+
+  let html = '';
+  html += '<div class="card">';
+  html += '<div class="summary-row">';
+  html += summaryBox('Employees with sick leave', totalEmployeesWithAbsence, '', true);
+  html += summaryBox('Total sick days', totalDaysAll, '', true);
+  html += summaryBox('Total sickness periods', totalPeriodsAll, '');
+  html += summaryBox('Avg. days / employee', avgDays, '');
+  html += summaryBox('Stage 1', stage1Count, 'manager conversation', false, false, 'accent-orange');
+  html += summaryBox('Stage 2', stage2Count, 'certificate from day 1', false, false, 'accent-rust');
+  html += summaryBox('Stage 3', stage3Count, '43 calendar days reached (BEM)', false, false, 'accent');
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="card">';
+  html += renderControlsRow();
+  html += '<div id="empList"></div>';
+  html += renderLegend();
+  html += '</div>';
+
+  document.getElementById('resultsArea').innerHTML = html;
+  document.getElementById('resultsArea').style.display = 'block';
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    currentSearch = e.target.value;
+    document.getElementById('searchClearBtn').classList.toggle('visible', !!currentSearch);
+    renderEmpArea();
+  });
+  document.getElementById('searchClearBtn').addEventListener('click', () => {
+    currentSearch = '';
+    const input = document.getElementById('searchInput');
+    input.value = '';
+    input.focus();
+    document.getElementById('searchClearBtn').classList.remove('visible');
+    renderEmpArea();
+  });
+  const exportBtn = document.getElementById('exportBtn');
+  const exportMenu = document.getElementById('exportMenu');
+  exportBtn.addEventListener('click', (ev) => { ev.stopPropagation(); exportMenu.classList.toggle('open'); });
+  exportMenu.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    exportMenu.classList.remove('open');
+    const fmt = btn.dataset.format;
+    if (fmt === 'csv') exportCsv();
+    else if (fmt === 'xlsx') exportExcel();
+    else if (fmt === 'pdf-table') exportPdfTable();
+  }));
+  document.getElementById('exitedToggle').addEventListener('click', () => { includeExited = !includeExited; renderResults(); });
+  wireFilterPanel();
+
+  renderEmpArea();
+}
+function wireFilterOptsList() {
+  const listEl = document.getElementById('filterOptsList');
+  if (!listEl) return;
+  listEl.querySelectorAll('.filter-opt-btn').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const col = FILTER_COLUMNS.find(c => c.key === filterActiveColumn);
+    if (col) col.toggle(btn.dataset.value);
+    renderResults();
+  }));
+}
+function wireFilterPanel() {
+  const trigger = document.getElementById('filterTrigger');
+  const panel = document.getElementById('filterPanel');
+  if (!trigger || !panel) return;
+  if (filterPanelOpen) panel.classList.add('open');
+  trigger.addEventListener('click', ev => {
+    ev.stopPropagation();
+    filterPanelOpen = !filterPanelOpen;
+    panel.classList.toggle('open', filterPanelOpen);
+  });
+  panel.querySelectorAll('.filter-col-item').forEach(btn => btn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    filterActiveColumn = btn.dataset.col;
+    filterOptsSearch = '';
+    renderResults();
+  }));
+  wireFilterOptsList();
+  const searchInput = document.getElementById('filterOptsSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', ev => {
+      filterOptsSearch = ev.target.value;
+      const listEl = document.getElementById('filterOptsList');
+      if (listEl) { listEl.innerHTML = renderFilterOptsList(); wireFilterOptsList(); }
+    });
+  }
+  const clearAllBtn = document.getElementById('filterClearAll');
+  if (clearAllBtn) clearAllBtn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    FILTER_COLUMNS.forEach(c => c.toggle(''));
+    renderResults();
+  });
+}
+document.addEventListener('click', (ev) => {
+  document.querySelectorAll('.export-menu.open').forEach(menu => {
+    const wrap = menu.closest('.export-dropdown');
+    if (wrap && !wrap.contains(ev.target)) {
+      menu.classList.remove('open');
+      if (menu.id === 'filterPanel') { filterPanelOpen = false; }
+    }
+  });
+  if (calendarOpenFor && !ev.target.closest('.window-date-wrap')) {
+    calendarOpenFor = null;
+    renderResults();
+  }
+});
+
+function summaryBox(label, value, sub, hl, warn, accentCls) {
+  const cls = warn ? 'warn' : (accentCls ? accentCls : (hl ? 'hl' : ''));
+  return '<div class="summary-box '+cls+'"><div class="sb-label">'+label+'</div><div class="sb-value">'+value+'</div>'
+    + (sub ? '<div class="sb-sub">'+sub+'</div>' : '') + '</div>';
+}
+
+const RECOMMENDATION_RANK = {
+  'BEM invitation': 4,
+  'Certificate from day 1': 3,
+  'Manager conversation': 2,
+  'Monitor': 1,
+  'No action needed': 0
+};
+const PATTERN_RANK = {
+  'Extended leave': 3,
+  'Frequent short absences': 2,
+  'Multiple absences': 1,
+  'Single absence': 0
+};
+
+function getFilteredSortedEmployees() {
+  const { employees } = REPORT;
+  let list = employees.slice();
+  if (!includeExited) list = list.filter(e => !e.hasExited);
+  if (currentDeptFilter.length) list = list.filter(e => currentDeptFilter.includes(e.department));
+  if (currentTeamFilter.length) list = list.filter(e => currentTeamFilter.includes(e.team));
+  if (currentRecommendationFilter.length) list = list.filter(e => currentRecommendationFilter.includes(e.recommendation));
+  if (currentPatternFilter.length) list = list.filter(e => currentPatternFilter.includes(e.pattern));
+  if (currentSearch.trim()) {
+    const q = currentSearch.trim().toLowerCase();
+    list = list.filter(e => e.name.toLowerCase().includes(q));
+  }
+  if (currentSort === 'days_desc') list.sort((a,b) => b.totalDays - a.totalDays);
+  else if (currentSort === 'days_asc') list.sort((a,b) => a.totalDays - b.totalDays);
+  else if (currentSort === 'periods_desc') list.sort((a,b) => b.totalPeriods - a.totalPeriods);
+  else if (currentSort === 'caldays_desc') list.sort((a,b) => b.totalCalendarDays - a.totalCalendarDays);
+  else if (currentSort === 'recommendation_desc') list.sort((a,b) => (RECOMMENDATION_RANK[b.recommendation]||0) - (RECOMMENDATION_RANK[a.recommendation]||0));
+  else if (currentSort === 'pattern_desc') list.sort((a,b) => (PATTERN_RANK[b.pattern]||0) - (PATTERN_RANK[a.pattern]||0));
+  else if (currentSort === 'name_asc') list.sort((a,b) => a.name.localeCompare(b.name, 'de'));
+  else if (currentSort === 'department_asc') list.sort((a,b) => (a.department||'').localeCompare(b.department||'', 'de'));
+  else if (currentSort === 'team_asc') list.sort((a,b) => (a.team||'').localeCompare(b.team||'', 'de'));
+  return list;
+}
+
+function renderEmpArea() {
+  const list = getFilteredSortedEmployees();
+  const container = document.getElementById('empList');
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state" style="margin-top:12px"><div class="empty-state-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-title">No results</div><div class="empty-state-text">No employees found for the current search/filter.</div></div>';
+    return;
+  }
+  container.innerHTML = renderEmpTable(list);
+}
+
+function sortableTh(col, label, small, extraClass) {
+  const active = columnSortActive(col);
+  const cls = 'sortable-th' + (extraClass ? ' ' + extraClass : '') + (active ? ' active' : '');
+  return '<th class="'+cls+'" onclick="sortByColumn(\''+col+'\')"><span class="th-main">'+label+(active ? '<span class="sort-arrow">'+columnSortArrow(col)+'</span>' : '')+'</span><small>'+(small || '&nbsp;')+'</small></th>';
+}
+
+function renderEmpTable(list) {
+  let html = '<div class="flat-table-wrap"><table class="flat-table"><thead><tr>'
+    + sortableTh('name', 'Name', null, 'name-th')
+    + sortableTh('pattern', 'Absence type')
+    + sortableTh('recommendation', 'Recommendation')
+    + sortableTh('episodes', 'Episodes', null, 'num')
+    + sortableTh('sickdays', 'Working days', 'sick days', 'num')
+    + sortableTh('caldays', 'Calendar days', 'sick days', 'num')
+    + '</tr></thead><tbody>';
+  list.forEach((e, idx) => {
+    const rowId = 'tbl_' + idx;
+    html += '<tr class="flat-row" id="'+rowId+'_row" onclick="toggleTableRow(\''+rowId+'\')">'
+      + '<td class="name-cell" title="'+escapeHtml(e.name)+(e.hasExited ? ' (left the company)' : '')+'"><div class="name-cell-inner"><span class="name-text">'+escapeHtml(e.name)+'</span>'+(e.hasExited ? '<span class="exit-dot"></span>' : '')+'</div></td>'
+      + '<td><span class="badge '+patternBadgeClass(e.pattern)+'">'+e.pattern+'</span></td>'
+      + '<td><span class="badge '+e.recommendationClass+'">'+e.recommendation+'</span></td>'
+      + '<td class="num">'+e.totalPeriods+'</td>'
+      + '<td class="num">'+e.totalDays+'</td>'
+      + '<td class="num">'+e.totalCalendarDays+'</td>'
+      + '</tr>';
+    const chronological = e.periods.slice().sort((a,b) => a.start - b.start);
+    const lines = chronological.map((p,i) => '<div class="period-line"><b>Episode '+(i+1)+':</b> '+fmtDate(p.start)+' – '+fmtDate(p.end)+' ('+p.days+' days)</div>').join('');
+    html += '<tr class="flat-detail-row" id="'+rowId+'_detail" style="display:none"><td colspan="6"><div class="flat-detail">'+lines+'</div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+function toggleTableRow(rowId) {
+  const detail = document.getElementById(rowId + '_detail');
+  const row = document.getElementById(rowId + '_row');
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'table-row';
+  if (row) row.classList.toggle('expanded', !isOpen);
+}
+
+function renderLegend() {
+  return '<details class="explain">'
+    + '<summary><svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,6 8,10 12,6"/></svg>Definitions &amp; Rules</summary>'
+    + '<div class="explain-body">'
+
+    + '<div class="explain-heading">Periods</div>'
+    + '<p>Multiple consecutive calendar days (including weekends) count as one period. If there is at least one working day without sickness between two sick notes, a new period begins. Weekends and nationwide public holidays (New Year’s Day, Good Friday, Easter Monday, Labour Day, Ascension Day, Whit Monday, German Unity Day, Christmas Day, Boxing Day) do not interrupt a period.</p>'
+    + '<ul>'
+    + '<li><span class="badge b-green">Single day</span> 1 calendar day</li>'
+    + '<li><span class="badge b-purple">Short</span> 2–3 calendar days</li>'
+    + '<li><span class="badge b-orange">Multi-day</span> 4–10 calendar days</li>'
+    + '<li><span class="badge b-red">Extended leave</span> more than 10 consecutive calendar days</li>'
+    + '</ul>'
+
+    + '<div class="explain-heading">Absence type</div>'
+    + '<p>Classification per employee, based on their periods:</p>'
+    + '<ul>'
+    + '<li><span class="badge b-grey">Extended leave</span> at least one period &gt; 10 calendar days</li>'
+    + '<li><span class="badge b-grey">Frequent short absences</span> no long period, but ≥ 3 periods of max. 3 days each</li>'
+    + '<li><span class="badge b-grey">Multiple absences</span> more than one period, but no conspicuous pattern</li>'
+    + '<li><span class="badge b-grey">Single absence</span> exactly one period</li>'
+    + '</ul>'
+    + '<p class="explain-note">Note: Only nationwide public holidays are considered for period detection, not state-specific ones (e.g. Corpus Christi, Reformation Day). The days per period correspond to the sum of the absence duration reported by Personio (column H), not a recalculation based on the calendar.</p>'
+
+    + '<div class="explain-heading">Definitions</div>'
+    + '<ul>'
+    + '<li><b>Sick day:</b> A working day on which a person was signed off sick. Weekends and public holidays do not count.</li>'
+    + '<li><b>Sickness episode</b> (= period): A connected period of absence – e.g. Friday → Monday counts as one episode, while two separate single days in the same week count as two episodes.</li>'
+    + '</ul>'
+
+    + '<div class="explain-heading">Recommendation stages</div>'
+    + '<div class="flat-table-wrap" style="margin-top:2px"><table class="flat-table" style="min-width:600px">'
+    + '<thead><tr><th>#</th><th>Stage</th><th>Threshold</th><th>What happens</th><th>Owner</th></tr></thead><tbody>'
+    + '<tr><td>1</td><td>Manager conversation</td><td>5 episodes or &gt; 20 calendar days</td><td>Supportive conversation with the employee</td><td>Manager, guided by People Partner</td></tr>'
+    + '<tr><td>2</td><td>Certificate from day 1</td><td>8 episodes</td><td>Written instruction</td><td>People Partner</td></tr>'
+    + '<tr><td>3</td><td>BEM 🇩🇪</td><td>43 calendar days</td><td>Invitation to occupational reintegration management (BEM)</td><td>People Partner</td></tr>'
+    + '<tr><td>4</td><td>Formal review</td><td>No automatic trigger</td><td>Case-by-case assessment</td><td>People Partner</td></tr>'
+    + '</tbody></table></div>'
+    + '<p class="explain-note">The recommendation per employee in this report is based on these thresholds. “Close” marks values just below a threshold (episodes: 1 below the threshold; calendar days: up to 8 days below) and should be monitored. Stage 4 has no automatic trigger and is not evaluated here.</p>'
+    + '</div></details>';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function buildExportRows(list, includePeriods) {
+  const header = ['Name','Department','Team','Episodes','Working days (sick days)','Calendar days (sick days)','Absence type','Recommendation','Exit date'];
+  if (includePeriods) header.push('Periods');
+  const rows = list.map(e => {
+    const row = [e.name, e.department || '', e.team || '', e.totalPeriods, e.totalDays, e.totalCalendarDays, e.pattern, e.recommendation, e.exitDate ? fmtDate(e.exitDate) : ''];
+    if (includePeriods) row.push(e.periods.map(p => fmtDate(p.start)+'-'+fmtDate(p.end)+' ('+p.days+' days)').join(' | '));
+    return row;
+  });
+  return [header, ...rows];
+}
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportCsv() {
+  const rows = buildExportRows(getFilteredSortedEmployees(), true);
+  const csv = rows.map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  downloadBlob(new Blob(['\ufeff'+csv], { type: 'text/csv;charset=utf-8;' }), 'SicknessReport_' + todayStr() + '.csv');
+}
+
+function exportExcel() {
+  try {
+    const rows = buildExportRows(getFilteredSortedEmployees(), true);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:22},{wch:16},{wch:16},{wch:10},{wch:12},{wch:12},{wch:22},{wch:18},{wch:12},{wch:14},{wch:10},{wch:12},{wch:60}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sickness Report');
+    XLSX.writeFile(wb, 'SicknessReport_' + todayStr() + '.xlsx');
+  } catch (err) {
+    showError('Excel export failed: ' + err.message);
+  }
+}
+
+function exportPdfTable() {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const list = getFilteredSortedEmployees();
+    const rows = buildExportRows(list, false);
+    const header = rows[0];
+    const body = rows.slice(1);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(24,24,27);
+    doc.text('BEM Sickness Report', 30, 32);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107,107,116);
+    doc.text('Analysis window: ' + (REPORT.windowStart && REPORT.windowEnd ? fmtDate(REPORT.windowStart) + ' – ' + fmtDate(REPORT.windowEnd) : '–') + '  |  generated on ' + fmtDate(toUtcDate(new Date())), 30, 46);
+
+    doc.autoTable({
+      head: [header],
+      body: body,
+      startY: 60,
+      styles: { fontSize: 8, cellPadding: 5, textColor: [73,73,80], lineColor: [228,228,231], lineWidth: 0.5 },
+      headStyles: { fillColor: [80,70,232], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8 },
+      alternateRowStyles: { fillColor: [250,250,250] },
+      margin: { left: 30, right: 30 }
+    });
+    doc.save('SicknessReport_table_' + todayStr() + '.pdf');
+  } catch (err) {
+    showError('PDF export failed: ' + err.message);
+  }
+}
+
+/* ---------- File handling ---------- */
+function showError(msg) {
+  document.getElementById('errorArea').innerHTML = '<div class="error-note">'+escapeHtml(msg)+'</div>';
+}
+function clearError() { document.getElementById('errorArea').innerHTML = ''; }
+
+function clipEntriesToWindow(entries, windowStart, windowEnd) {
+  if (!windowStart || !windowEnd) return entries;
+  const clipped = [];
+  entries.forEach(e => {
+    if (e.end < windowStart || e.start > windowEnd) return; // fully outside — excluded
+    const clippedStart = e.start < windowStart ? windowStart : e.start;
+    const clippedEnd = e.end > windowEnd ? windowEnd : e.end;
+    // Personio itself scopes the "Abwesenheitsdauer (Tage)" figure to the analysis window that
+    // was selected when the report was exported — the Startdatum/Enddatum shown can reach outside
+    // that window, but the day count already only reflects the days within it. So as long as the
+    // window entered here matches the one used in Personio, the exported number is already correct
+    // for the clipped range and must not be re-scaled — only the displayed start/end (and any
+    // calendar-day math elsewhere) are adjusted to the window.
+    clipped.push({ key: e.key, vorname: e.vorname, nachname: e.nachname, art: e.art, start: clippedStart, end: clippedEnd, days: e.days });
+  });
+  return clipped;
+}
+
+function rebuildReportFromWindow() {
+  if (!RAW_ENTRIES) return;
+  const clipped = clipEntriesToWindow(RAW_ENTRIES, analysisWindowStart, analysisWindowEnd);
+  REPORT = buildReport(clipped, RAW_EXIT_DATES, RAW_DEPARTMENTS, RAW_TEAMS);
+  REPORT.windowStart = analysisWindowStart;
+  REPORT.windowEnd = analysisWindowEnd;
+}
+
+function handleFile(file) {
+  if (!file) return;
+  clearError();
+  document.getElementById('fileNamePill').innerHTML = '<span class="file-name-pill">'+escapeHtml(file.name)+'</span>';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const { entries, exitDates, departments, teams } = parseWorkbook(workbook);
+      if (!entries.length) {
+        showError('No sickness data could be found in this file. Please check the export.');
+        return;
+      }
+      RAW_ENTRIES = entries; RAW_EXIT_DATES = exitDates; RAW_DEPARTMENTS = departments; RAW_TEAMS = teams;
+      let rawMaxEnd = null;
+      entries.forEach(en => { if (!rawMaxEnd || en.end > rawMaxEnd) rawMaxEnd = en.end; });
+      RAW_MAX_END = rawMaxEnd;
+      // No default window — the person must enter their own analysis period before any data is shown.
+      analysisWindowStart = null;
+      analysisWindowEnd = null;
+      REPORT = null;
+
+      document.getElementById('uploadCard').style.display = 'none';
+      renderResults();
+    } catch (err) {
+      showError('The file could not be read: ' + err.message);
+    }
+  };
+  reader.onerror = function() { showError('The file could not be read.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetAll() {
+  REPORT = null;
+  RAW_ENTRIES = null; RAW_EXIT_DATES = null; RAW_DEPARTMENTS = null; RAW_TEAMS = null; RAW_MAX_END = null;
+  analysisWindowStart = null; analysisWindowEnd = null;
+  calendarOpenFor = null; calendarViewDate = null;
+  currentSearch = ''; currentSort = 'days_desc'; includeExited = true; currentDeptFilter = []; currentTeamFilter = []; currentRecommendationFilter = []; currentPatternFilter = []; filterPanelOpen = false; filterActiveColumn = null; filterOptsSearch = '';
+  document.getElementById('uploadCard').style.display = 'block';
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('resultsArea').innerHTML = '';
+  document.getElementById('fileNamePill').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+  clearError();
+}
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+dropZone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+</script>
+</body>
+</html>
