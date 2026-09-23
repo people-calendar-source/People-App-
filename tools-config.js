@@ -89,7 +89,7 @@ window.PEOPLE_APP_CONFIG = {
         }
       ]
     },
-    {
+        {
       id: "development",
       label: "03 Development",
       icon: "graduation",
@@ -108,7 +108,12 @@ window.PEOPLE_APP_CONFIG = {
       tools: []
     },
     {
-      id: "bem-sickness-report",
+      id: "analytics",
+      label: "06 Analytics",
+      icon: "barchart",
+      tools: [
+        {
+          id: "bem-sickness-report",
           label: "BEM Sickness Report",
           file: "BEM-report.html",
           icon: "calendar",
