@@ -540,6 +540,7 @@ function combineStatus(a, b) {
   if (a === 'knapp' || b === 'knapp') return 'knapp';
   return 'nein';
 }
+
 /* ---------- Grouping and merging into periods (all data from the report, no date-range filtering) ---------- */
 function buildReport(entries, exitDates, departments, teams) {
   exitDates = exitDates || new Map();
@@ -608,18 +609,14 @@ function buildReport(entries, exitDates, departments, teams) {
     else pattern = 'Single absence';
 
     const episodes = periods.length;
-    const stage1 = combineStatus(
-      closenessStatus(episodes, 5, 1),
-      closenessStatus(totalCalendarDays, 20, 8)
-    );
-    const stage2 = closenessStatus(episodes, 8, 1);
-    const stage3 = closenessStatus(totalCalendarDays, 43, 8);
+    const stage1 = (episodes >= 5 || totalCalendarDays >= 20) ? 'ja' : 'nein';
+    const stage2 = episodes >= 8 ? 'ja' : 'nein';
+    const stage3 = totalCalendarDays >= 43 ? 'ja' : 'nein';
 
     let recommendation, recommendationClass;
     if (stage3 === 'ja') { recommendation = 'BEM invitation'; recommendationClass = 'b-red'; }
     else if (stage2 === 'ja') { recommendation = 'Certificate from day 1'; recommendationClass = 'b-rust'; }
-    else if (stage1 === 'ja') { recommendation = 'Manager conversation'; recommendationClass = 'b-orange'; }
-    else if (stage1 === 'knapp' || stage2 === 'knapp' || stage3 === 'knapp') { recommendation = 'Monitor'; recommendationClass = 'b-amber'; }
+    else if (stage1 === 'ja') { recommendation = 'Monitor'; recommendationClass = 'b-orange'; }
     else { recommendation = 'No action needed'; recommendationClass = 'b-green'; }
 
     const exitDate = exitDates.get(key) || null;
@@ -969,7 +966,7 @@ function renderResults() {
   html += summaryBox('Total sick days', totalDaysAll, '', true);
   html += summaryBox('Total sickness periods', totalPeriodsAll, '');
   html += summaryBox('Avg. days / employee', avgDays, '');
-  html += summaryBox('Stage 1', stage1Count, 'manager conversation', false, false, 'accent-orange');
+  html += summaryBox('Stage 1', stage1Count, 'monitor', false, false, 'accent-orange');
   html += summaryBox('Stage 2', stage2Count, 'certificate from day 1', false, false, 'accent-rust');
   html += summaryBox('Stage 3', stage3Count, '43 calendar days reached (BEM)', false, false, 'accent');
   html += '</div>';
@@ -1132,7 +1129,7 @@ function renderEmpTable(list) {
   let html = '<div class="flat-table-wrap"><table class="flat-table"><thead><tr>'
     + sortableTh('name', 'Name', null, 'name-th')
     + sortableTh('pattern', 'Absence type')
-    + sortableTh('recommendation', 'Recommendation')
+    + sortableTh('recommendation', 'Action')
     + sortableTh('episodes', 'Episodes', null, 'num')
     + sortableTh('sickdays', 'Working days', 'sick days', 'num')
     + sortableTh('caldays', 'Calendar days', 'sick days', 'num')
@@ -1194,13 +1191,12 @@ function renderLegend() {
 
     + '<div class="explain-heading">Recommendation stages</div>'
     + '<div class="flat-table-wrap" style="margin-top:2px"><table class="flat-table" style="min-width:600px">'
-    + '<thead><tr><th>#</th><th>Stage</th><th>Threshold</th><th>What happens</th><th>Owner</th></tr></thead><tbody>'
-    + '<tr><td>1</td><td>Manager conversation</td><td>5 episodes or &gt; 20 calendar days</td><td>Supportive conversation with the employee</td><td>Manager, guided by People Partner</td></tr>'
-    + '<tr><td>2</td><td>Certificate from day 1</td><td>8 episodes</td><td>Written instruction</td><td>People Partner</td></tr>'
-    + '<tr><td>3</td><td>BEM 🇩🇪</td><td>43 calendar days</td><td>Invitation to occupational reintegration management (BEM)</td><td>People Partner</td></tr>'
-    + '<tr><td>4</td><td>Formal review</td><td>No automatic trigger</td><td>Case-by-case assessment</td><td>People Partner</td></tr>'
+    + '<thead><tr><th>#</th><th>Thresholds</th><th>Action</th><th>Description</th></tr></thead><tbody>'
+    + '<tr><td style="white-space:normal;vertical-align:top">1</td><td style="white-space:normal;vertical-align:top">5 individual sickness episodes or<br>≥ 20 calendar days sick leave</td><td style="white-space:normal;vertical-align:top">Monitor</td><td style="white-space:normal;vertical-align:top">People Partner review; conversation if needed</td></tr>'
+    + '<tr><td style="white-space:normal;vertical-align:top">2</td><td style="white-space:normal;vertical-align:top">8 individual sickness episodes</td><td style="white-space:normal;vertical-align:top">Certificate from day 1</td><td style="white-space:normal;vertical-align:top">Written instruction: certificate from day 1</td></tr>'
+    + '<tr><td style="white-space:normal;vertical-align:top">3</td><td style="white-space:normal;vertical-align:top">More than six weeks of continuous or repeated incapacity for work</td><td style="white-space:normal;vertical-align:top">BEM invitation</td><td style="white-space:normal;vertical-align:top">Mandatory BEM offer</td></tr>'
     + '</tbody></table></div>'
-    + '<p class="explain-note">The recommendation per employee in this report is based on these thresholds. “Close” marks values just below a threshold (episodes: 1 below the threshold; calendar days: up to 8 days below) and should be monitored. Stage 4 has no automatic trigger and is not evaluated here.</p>'
+    + '<p class="explain-note">The recommendation per employee in this report is based on these thresholds.</p>'
     + '</div></details>';
 }
 
